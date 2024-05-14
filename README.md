@@ -10,7 +10,9 @@ Declarative Macro - compose!
 
 Proc attribute macro composeable is add to any function that can be composed.
 e.g below is simple function to add 10 to a given number.
-In the current version, only single argument sync functions are supported.
+In the current version, only  **single argument sync functions, single arg async function and two arg async functions
+are
+supported.**
 
 ```rust
 #[composeable()]
@@ -80,7 +82,7 @@ This could be useful for injecting database connection or other external service
 See the example below
 
 ```rust
-// Check the '.provide' method below fo injecting second args to add_async function
+// Check the '.provide' method below of injecting second args to add_async function
 let result = compose!(add_async.provide(100) -> add_100_async -> withArgs(10)).await;
 assert_eq!(210, result.unwrap());
 ```
