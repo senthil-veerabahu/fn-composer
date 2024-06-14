@@ -90,9 +90,11 @@ async fn test_compose_async_functions(){
     let result = compose!(add_100 -> add_3_arg_async.provide(1).provide(1) -> withArgs(10)).await;
     assert_eq!(112, result.unwrap());
 
+    //Test injecting multiple values to async functions
     let result = compose!(add_3_arg_async.provide(1).provide(1) -> add_3_arg_async.provide(1).provide(1) -> withArgs(10)).await;
     assert_eq!(14, result.unwrap());
-    
+
+    //Test injecting shared reference to async functions
     let one = &1;
     let result = compose!(add_3_arg_ref_async.provide(one).provide(one) -> add_3_arg_async.provide(1).provide(1) -> withArgs(10)).await;
     assert_eq!(14, result.unwrap());

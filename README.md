@@ -10,9 +10,6 @@ Declarative Macro - compose!
 
 Proc attribute macro composeable is add to any function that can be composed.
 e.g below is simple function to add 10 to a given number.
-In the current version, only  **single argument sync functions, single arg async function and two arg async functions
-are
-supported.**
 
 ```rust
 #[composeable()]
@@ -55,6 +52,32 @@ pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError>> {
 }
 ```
 
+Below is example of async addition of 3 values
+
+```rust
+#[composeable()]
+pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, FnError>>{
+    async move{
+        let  r =   a + b + c;
+        Ok(r)
+    }.boxed()
+}
+
+```
+
+Below is example of async addition of 3 values with last parameter accepting reference
+
+```rust
+#[composeable()]
+pub fn add_3_arg_ref_async<'a>(a: i32,b: &'a i32, c:&'a i32) -> BoxFuture<'a, Result<i32, FnError>>{
+    async move{
+        let  r =   a + b + c;
+        Ok(r)
+    }.boxed()
+}
+
+```
+
 It is possible to compose single arg sync function with two arg async function and vice versa.
 
 Below are the examples of how to compose async functions
@@ -85,6 +108,27 @@ See the example below
 // Check the '.provide' method below of injecting second args to add_async function
 let result = compose!(add_async.provide(100) -> add_100_async -> withArgs(10)).await;
 assert_eq!(210, result.unwrap());
+```
+
+Example of multiple injection to async function  
+```rust
+let result = compose!(add_3_arg_async.provide(100).provide(200) -> add_100_async -> withArgs(10)).await;
+assert_eq!(410, result.unwrap());
+```
+
+Example of multiple injection to async function in the second position
+```rust
+
+let result = compose!(add_100 -> add_3_arg_async.provide(1).provide(1) -> withArgs(10)).await;
+assert_eq!(112, result.unwrap());
+```
+
+Example of multiple injection to shared reference to async function
+
+```rust
+let one = &1;
+let result = compose!(add_3_arg_ref_async.provide(one).provide(one) -> add_3_arg_async.provide(1).provide(1) -> withArgs(10)).await;
+assert_eq!(14, result.unwrap());
 ```
 
 
