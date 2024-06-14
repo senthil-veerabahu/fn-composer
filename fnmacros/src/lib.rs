@@ -5,10 +5,6 @@ use std::fmt::format;
 use quote::{quote, ToTokens};
 use syn::{ItemFn, parse::Parse};
 
-macro_rules! test {
-    () => {};
-}
-
 fn generate_return_type_param(index:u8) -> String{
     format!("T{index}")
 }
