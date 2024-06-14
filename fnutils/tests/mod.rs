@@ -10,9 +10,6 @@ pub fn add_10(a:i32) -> Result<i32, FnError>{
     Ok(a + 10)
 }
 
-use fnutils::*;
-
-
 #[composeable()]
 pub fn add_100(a:i32) -> Result<i32, FnError>{
     Ok(a + 100)
