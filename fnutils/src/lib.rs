@@ -8,19 +8,15 @@ use std::{error::Error, fmt::Display, mem::discriminant, ops::Deref};
 
 use futures::{future::BoxFuture, FutureExt};
 use paste::paste;
+/*#[doc = concat!("This is documentation for ", stringify!($name), ".
+# Errors
+  * Makes some Error when bad things happen
+        ")]*/
 
-macro_rules! lift_fn_generator {
-    ([$($args:ident),*], $return_type:ident, $arg_size:literal) => {
-        paste!{
-            pub fn [<lift $arg_size>]<'a, $($args),*, $return_type, F: FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>(f: F,) -> [<BoxedFn $arg_size>]<'a, $($args),*, $return_type> {
-                Box::new(f)
-            }
-        }
-    }
-}
 macro_rules! composer_generator {
     ($arg1:ident, $return_type1:ident, $return_type2:ident) => {
         paste!{
+            #[doc = concat!("AndThen implementation for composing sync function (BoxedFn1) with another sync function(BoxedFn1) ")]
             impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
                 AndThen<'a, $arg1, $return_type1, $return_type2, BoxedFn1<'a, $return_type1, $return_type2>, BoxedFn1<'a, $arg1, $return_type2>> for BoxedFn1<'a, $arg1, $return_type1>{
 
@@ -34,6 +30,7 @@ macro_rules! composer_generator {
                 }
             }
 
+            #[doc = concat!("AndThen implementation for composing sync function(BoxedFn1) with another async function(BoxedAsyncFn1) ")]
             impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
                 AndThen<'a, $arg1, $return_type1, $return_type2, BoxedAsyncFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedFn1<'a, $arg1, $return_type1>{
 
@@ -47,6 +44,8 @@ macro_rules! composer_generator {
                     Box::new(r1)
                 }
             }
+
+            #[doc = concat!("AndThen implementation for composing async function(BoxedAsyncFn1) with another sync function(BoxedFn1) ")]
 
             impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
                 AndThen<'a, $arg1, $return_type1, $return_type2, BoxedFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedAsyncFn1<'a, $arg1, $return_type1>{
@@ -64,7 +63,7 @@ macro_rules! composer_generator {
             }
 
 
-
+            #[doc = concat!("AndThen implementation for composing async function(BoxedAsyncFn1) with another async function(BoxedAsyncFn1) ")]
             impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
                 AndThen<'a, $arg1, $return_type1, $return_type2, BoxedAsyncFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedAsyncFn1<'a, $arg1, $return_type1>{
 
@@ -86,17 +85,20 @@ macro_rules! impl_injector {
     ([$($args:ident),*], $provided:ident, $return_type:ident,  $arg_size:literal, $return_fn_arg_size:literal) => {
 
         paste!  {
-
+            #[doc = concat!("dependency injection function provide_f", stringify!($arg_size), " for injecting the last argument of a given sync function")]
             pub fn [<provider_f $arg_size>]<'a, $($args),*, $provided, $return_type>(fn1: [<BoxedFn $arg_size>]<'a, $($args),*, $provided, $return_type>,provided_data: $provided,) -> [<BoxedFn $return_fn_arg_size>]<'a, $($args),* , $return_type> where $( $args: 'a ),*, $provided: Send + Sync + 'a, $return_type: 'a{
                     Box::new(move |$( [<$args:lower>]:$args ),*| fn1($( [<$args:lower>]),*,  provided_data))
             }
 
+            #[doc = concat!("dependency injection function provider_async_f", stringify!($arg_size), " for injecting the last argument of a given async function")]
             pub fn [<provider_async_f $arg_size>]<'a, $($args),*, $provided, $return_type>(fn1: [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $provided, $return_type>,provided_data: $provided,) -> [<BoxedAsyncFn $return_fn_arg_size>]<'a, $($args),* , $return_type> where $( $args: 'a ),*, $provided: Send + Sync + 'a, $return_type: 'a{
                     Box::new(move |$( [<$args:lower>]:$args ),*| fn1($( [<$args:lower>]),*,  provided_data))
             }
 
         }
         paste!{
+
+            #[doc = concat!("Injector implementation for a given sync function that accepts " , stringify!($return_fn_arg_size+1), " arguments and returns a function with ", stringify!($return_fn_arg_size), " arguments")]
             impl<'a, $($args),*, $provided, $return_type> OwnedInjecter<$provided, [<BoxedFn $return_fn_arg_size>]<'a, $($args),*, $return_type>> for [<BoxedFn $arg_size>] <'a, $($args),*, $provided, $return_type>
             where $( $args: 'a ),*, $provided: Send + Sync +'a, $return_type: 'a
             {
@@ -106,6 +108,7 @@ macro_rules! impl_injector {
                 }
             }
 
+            #[doc = concat!("Injector implementation for a given async function that accepts " , stringify!($return_fn_arg_size+1), " arguments  and returns a function with ", stringify!($return_fn_arg_size), " arguments")]
             impl<'a, $($args),*, $provided, $return_type> OwnedInjecter<$provided, [<BoxedAsyncFn $return_fn_arg_size>]<'a, $($args),*, $return_type>> for [<BoxedAsyncFn $arg_size>] <'a, $($args),*, $provided, $return_type>
             where $( $args: 'a ),*, $provided: Send + Sync +'a, $return_type: 'a
             {
@@ -116,10 +119,6 @@ macro_rules! impl_injector {
             }
         }
     };
-
-    (@gen_type_lifetime_bounds( $first:ident, $($rest:ident),*, $lifetime:lifetime )) => (
-        $first: $lifetime, @gen_type_lifetime_bounds($($rest:ident),*, $lifetime)
-    );
 }
 
 macro_rules! generate_boxed_fn {
@@ -127,19 +126,22 @@ macro_rules! generate_boxed_fn {
 
             //let x = count!($($args),*);
             concat_idents::concat_idents!(boxed_fn_name = BoxedFn,$arg_size  {
+                #[doc = concat!("Type alias  BoxedFn", stringify!($arg_size), "  for Boxed FnOnce sync function with ", stringify!($arg_size), " arguments")]
                 pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>;
             });
 
             concat_idents::concat_idents!(boxed_fn_name = BoxedAsyncFn,$arg_size  {
-                //Box<dyn FnOnce(A) -> BoxFuture<'a, Result<B, FnError>> + Send + Sync + 'a>;
+                #[doc = concat!("Type alias  BoxedAsyncFn", stringify!($arg_size), "  for Boxed FnOnce async function" , stringify!($arg_size), " arguments")]
                     pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> BoxFuture<'a, Result<$return_type, FnError>> + Send + Sync + 'a>;
                 });
 
             paste!{
+                #[doc = concat!("Function to box FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedFn",stringify!($arg_size))]
                 pub fn [<lift_sync_fn $arg_size>]<'a, $($args),*, $return_type, F: FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>(f: F,) -> [<BoxedFn $arg_size>]<'a, $($args),*, $return_type> {
                     Box::new(f)
                 }
 
+                #[doc = concat!("Function to box  FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedAsyncFn",stringify!($arg_size))]
                 pub fn [<lift_async_fn $arg_size>]<'a, $($args),*, $return_type, F: FnOnce($($args),*) -> BoxFuture<'a,Result<$return_type, FnError>> + Send + Sync + 'a>(f: F,) -> [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $return_type> {
                     Box::new(f)
                 }
@@ -158,6 +160,19 @@ impl_injector!([T1, T2], T3, T4, 3, 2);
 generate_boxed_fn!([T1, T2, T3, T4], T5, 4);
 impl_injector!([T1, T2, T3], T4, T5, 4, 3);
 
+//Generates a function composition for BoxedFn1 as below. The below is example of composing sync with sync function.
+//Similar code is generated for composing sync with async function, async with sync function and async with async function.
+// impl<'a, T1: 'a + Send, T2: 'a + Send, T3: 'a>
+// AndThen<'a, T1, T2, T3, BoxedFn1<'a, T2, T3>, BoxedFn1<'a, T1, T3>> for BoxedFn1<'a, T1, T2> {
+//     fn then(self, f: BoxedFn1<'a, T2, T3>) -> BoxedFn1<'a, T1, T3> {
+//         let r1 = move |x: T1| {
+//             let b = self(x)?;
+//             let r = f(b)?;
+//             Ok(r)
+//         };
+//         Box::new(r1)
+//     }
+// }
 composer_generator!(T1, T2, T3);
 
 #[derive(Debug)]
