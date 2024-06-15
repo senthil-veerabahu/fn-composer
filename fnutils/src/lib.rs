@@ -8,11 +8,9 @@ use std::{error::Error, fmt::Display, mem::discriminant, ops::Deref};
 
 use futures::{future::BoxFuture, FutureExt};
 use paste::paste;
-/*#[doc = concat!("This is documentation for ", stringify!($name), ".
-# Errors
-  * Makes some Error when bad things happen
-        ")]*/
 
+
+pub type FnError = Box<dyn Error>;
 macro_rules! composer_generator {
     ($arg1:ident, $return_type1:ident, $return_type2:ident) => {
         paste!{
@@ -189,138 +187,8 @@ pub enum ErrorType {
     EmailAlreadyTaken(String),
 }
 
-impl Into<FnError> for ErrorType {
-    fn into(self) -> FnError {
-        FnError {
-            underlyingError: None,
-            errorType: self,
-        }
-    }
-}
 
-#[derive(Debug)]
-pub struct FnError {
-    pub underlyingError: Option<Box<dyn Error>>,
-    pub errorType: ErrorType,
-}
 
-unsafe impl Send for FnError {}
-unsafe impl Sync for FnError {}
-
-#[derive(Debug)]
-struct UnderlyingError {}
-impl Display for UnderlyingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self)
-    }
-}
-
-impl Error for UnderlyingError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-
-    fn description(&self) -> &str {
-        "description() is deprecated; use Display"
-    }
-
-    fn cause(&self) -> Option<&dyn Error> {
-        self.source()
-    }
-}
-
-pub type AppResult<T> = Result<T, FnError>;
-pub trait ToAppResult<T> {
-    fn to_app_result(self) -> AppResult<T>;
-}
-
-impl<T, E> ToAppResult<T> for Result<T, E>
-where
-    E: Error + 'static,
-{
-    fn to_app_result(self) -> AppResult<T> {
-        match self {
-            Ok(r) => Ok(r),
-            Err(e) => Err(FnError {
-                errorType: ErrorType::Unknown(e.to_string()),
-                underlyingError: Some(Box::new(e)),
-            }),
-        }
-    }
-}
-
-pub struct ErrorMapper<K, F> {
-    errorMap: Vec<(K, F)>,
-}
-
-impl<K, F> ErrorMapper<K, F>
-where
-    F: FnOnce() -> ErrorType,
-{
-    pub fn new() -> ErrorMapper<K, F> {
-        ErrorMapper {
-            errorMap: Vec::new(),
-        }
-    }
-
-    pub fn add(&mut self, k: K, f: F) -> &mut Self {
-        self.errorMap.push((k, f));
-        self
-    }
-
-    fn getErrorType(&self, k: &K) -> Option<&(K, F)> {
-        self.errorMap
-            .iter()
-            .find(|item| discriminant(&item.0) == discriminant(k))
-    }
-}
-
-pub fn convertToAppError<K, F>(e: &ErrorMapper<K, F>, err: K) -> FnError
-where
-    F: Fn() -> ErrorType,
-    K: Display,
-{
-    let matchingErrorType = e.getErrorType(&err);
-    if (matchingErrorType.is_some()) {
-        let borrow_mut = matchingErrorType.unwrap();
-        let var_name = &borrow_mut.1;
-        var_name().into()
-    } else {
-        ErrorType::Unknown(err.to_string()).into()
-    }
-}
-
-impl Display for ErrorType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Display for FnError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let x = &self.underlyingError;
-        write!(
-            f,
-            "({}, {})",
-            self.errorType,
-            match x {
-                Some(e) => e.deref().to_string(),
-                None => "None".to_string(),
-            }
-        )
-    }
-}
-
-impl Error for FnError {}
-
-impl From<String> for FnError {
-    fn from(_value: String) -> Self {
-        FnError {
-            errorType: ErrorType::Unknown(_value),
-            underlyingError: None,
-        }
-    }
-}
 
 pub trait OwnedInjecter<I, O> {
     fn provide(self, a: I) -> O;
