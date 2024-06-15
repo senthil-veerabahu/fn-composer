@@ -69,8 +69,7 @@ fn test_compose_sync_functions(){
 }
 
 #[tokio::test]
-async fn test_compose_async_functions(){
-    use fnutils::OwnedInjecter;
+async fn test_compose_async_functions(){    
     let result = compose!(add_100_async -> add_100 -> withArgs(10)).await;
     assert_eq!(210, result.unwrap());
 
