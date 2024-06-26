@@ -4,7 +4,6 @@ use fnmacros::composeable;
 use fnutils::{compose, BoxedFn1, FnError};
 use futures::{future::BoxFuture, FutureExt};
 use retry::delay::*;
-use tokio::sync::Mutex;
 
 static mut RETRY_COUNT: i32 = 0;
 
