@@ -1,29 +1,198 @@
-use std::{error::Error, fmt::Display, mem::discriminant, ops::Deref, thread};
+//un comment below lines to debug macros
+
+/*#![feature(trace_macros)]
+trace_macros!(true);*/
+
+
+use std::{error::Error, fmt::Display, ops::Deref};
+use std::env::Args;
+
 
 use futures::{future::BoxFuture, FutureExt};
+use paste::paste;
 
-//test
-pub type AppFn<'a, A, B> = (dyn Fn(A) -> Result<B, FnError> + Send);
 
-pub type AppFn2<'a, A, B, C> = &'a dyn Fn(A, B) -> Result<C, FnError>;
-pub type AppFn3<'a, A, B, C, D> = &'a dyn Fn(A, B, C) -> Result<D, FnError>;
+//pub type FnError = Box<dyn Error>;
 
-pub type FutureAppFn<'a, A, B> = Box<dyn Fn(A) -> BoxFuture<'a, Result<B, FnError>> + Send + Sync>;
-pub type FutureAppFnOnce<'a, A, B> = Box<dyn FnOnce(A) -> BoxFuture<'a, Result<B, FnError>>>;
-pub type FutureAppFn2<'a, A, B, C> = Box<dyn Fn(A, B) -> BoxFuture<'a, Result<C, FnError>>>;
+#[derive(Debug)]
+pub struct FnError{
+    pub underlying_error: Option<Box<dyn Error + Send>>,
+    pub error_code:Option<String>,
+    pub description: Option<String>
+}
+macro_rules! composer_generator {
+    ($arg1:ident, $return_type1:ident, $return_type2:ident) => {
+        paste!{
+            #[doc = concat!("Then implementation for composing sync function (BoxedFn1) with another sync function(BoxedFn1) ")]
+            impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
+                Then<'a, $arg1, $return_type1, $return_type2, BoxedFn1<'a, $return_type1, $return_type2>, BoxedFn1<'a, $arg1, $return_type2>> for BoxedFn1<'a, $arg1, $return_type1>{
 
-pub type BoxedAppFn<'a, A, B> = Box<dyn Fn(A) -> Result<B, FnError> + Send + Sync + 'a>;
-pub type BoxedFutAppFnOnce<'a, A, B> =
-    Box<dyn FnOnce(A) -> BoxFuture<'a, Result<B, FnError>> + Send + Sync + 'a>;
-pub type BoxedFutAppTwoArgFnOnce<'a, A, B, C> =
-    Box<dyn Fn(A, B) -> BoxFuture<'a, Result<C, FnError>> + Send + Sync + 'a>;
+                fn then(self, f: BoxedFn1<'a, $return_type1, $return_type2>) -> BoxedFn1<'a, $arg1, $return_type2> {
+                    let r1 = move |x: $arg1| {
+                        let b = self(x)?;
+                        let r = f(b)?;
+                        Ok(r)
+                    };
+                    Box::new(r1)
+                }
+            }
 
-pub type BoxedAppFnOnce<'a, A, B> = Box<dyn FnOnce(A) -> Result<B, FnError> + 'a>;
+            #[doc = concat!("Then implementation for composing sync function(BoxedFn1) with another async function(BoxedAsyncFn1) ")]
+            impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
+                Then<'a, $arg1, $return_type1, $return_type2, BoxedAsyncFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedFn1<'a, $arg1, $return_type1>{
 
-pub type Boxed1AppFnOnce<'a, A, B, C> = Box<dyn FnOnce(A, B) -> Result<C, FnError> + 'a>;
+                fn then(self, f: BoxedAsyncFn1<'a, $return_type1, $return_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2> {
+                    let r1 =  |x: $arg1| {
+                        async move{
+                            let b = self(x)?;
+                            f(b).await
+                        }.boxed()
+                    };
+                    Box::new(r1)
+                }
+            }
 
-pub type BoxedAppFn2<'a, A, B, C> = Box<dyn Fn(A, B) -> Result<C, FnError> + 'a>;
-pub type BoxedAppFn3<'a, A, B, C, D> = Box<dyn Fn(A, B, C) -> Result<D, FnError> + 'a>;
+            #[doc = concat!("Then implementation for composing async function(BoxedAsyncFn1) with another sync function(BoxedFn1) ")]
+
+            impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
+                Then<'a, $arg1, $return_type1, $return_type2, BoxedFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedAsyncFn1<'a, $arg1, $return_type1>{
+
+                fn then(self, f: BoxedFn1<'a, $return_type1, $return_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2> {
+                    let r1 = |a: $arg1| {
+                        async move {
+                            let gResult = self(a).await?;
+                            f(gResult)
+                        }.boxed()
+                    };
+                    let r: BoxedAsyncFn1<'a,$arg1, $return_type2> = Box::new(r1);
+                    r
+                }
+            }
+
+
+            #[doc = concat!("Then implementation for composing async function(BoxedAsyncFn1) with another async function(BoxedAsyncFn1) ")]
+            impl<'a, $arg1: 'a + Send, $return_type1: 'a + Send, $return_type2: 'a>
+                Then<'a, $arg1, $return_type1, $return_type2, BoxedAsyncFn1<'a, $return_type1, $return_type2>, BoxedAsyncFn1<'a, $arg1, $return_type2>> for BoxedAsyncFn1<'a, $arg1, $return_type1>{
+
+                fn then(self, f: BoxedAsyncFn1<'a, $return_type1, $return_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2> {
+                    let r1 = |a: $arg1| {
+                        async move {
+                            let gResult = self(a).await?;
+                            f(gResult).await
+                        }.boxed()
+                    };
+                    let r: BoxedAsyncFn1<'a,$arg1, $return_type2> = Box::new(r1);
+                    r
+                }
+            }
+        }
+    }
+}
+macro_rules! impl_injector {
+    ([$($args:ident),*], $provided:ident, $return_type:ident,  $arg_size:literal, $return_fn_arg_size:literal) => {
+
+        paste!  {
+            #[doc = concat!("dependency injection function provide_f", stringify!($arg_size), " for injecting the last argument of a given sync function")]
+            pub fn [<provider_f $arg_size>]<'a, $($args),*, $provided, $return_type>(fn1: [<BoxedFn $arg_size>]<'a, $($args),*, $provided, $return_type>,provided_data: $provided,) -> [<BoxedFn $return_fn_arg_size>]<'a, $($args),* , $return_type> where $( $args: 'a ),*, $provided: Send + Sync + 'a, $return_type: 'a{
+                    Box::new(move |$( [<$args:lower>]:$args ),*| fn1($( [<$args:lower>]),*,  provided_data))
+            }
+
+            #[doc = concat!("dependency injection function provider_async_f", stringify!($arg_size), " for injecting the last argument of a given async function")]
+            pub fn [<provider_async_f $arg_size>]<'a, $($args),*, $provided, $return_type>(fn1: [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $provided, $return_type>,provided_data: $provided,) -> [<BoxedAsyncFn $return_fn_arg_size>]<'a, $($args),* , $return_type> where $( $args: 'a ),*, $provided: Send + Sync + 'a, $return_type: 'a{
+                    Box::new(move |$( [<$args:lower>]:$args ),*| fn1($( [<$args:lower>]),*,  provided_data))
+            }
+
+        }
+        paste!{
+
+            #[doc = concat!("Injector implementation for a given sync function that accepts " , stringify!($return_fn_arg_size+1), " arguments and returns a function with ", stringify!($return_fn_arg_size), " arguments")]
+            impl<'a, $($args),*, $provided, $return_type> Injector<$provided, [<BoxedFn $return_fn_arg_size>]<'a, $($args),*, $return_type>> for [<BoxedFn $arg_size>] <'a, $($args),*, $provided, $return_type>
+            where $( $args: 'a ),*, $provided: Send + Sync +'a, $return_type: 'a
+            {
+                fn provide(self, a: $provided) -> [<BoxedFn $return_fn_arg_size>]<'a, $($args),*, $return_type> {
+                    let r = [<provider_f $arg_size>](self, a);
+                    r
+                }
+            }
+
+            #[doc = concat!("Injector implementation for a given async function that accepts " , stringify!($return_fn_arg_size+1), " arguments  and returns a function with ", stringify!($return_fn_arg_size), " arguments")]
+            impl<'a, $($args),*, $provided, $return_type> Injector<$provided, [<BoxedAsyncFn $return_fn_arg_size>]<'a, $($args),*, $return_type>> for [<BoxedAsyncFn $arg_size>] <'a, $($args),*, $provided, $return_type>
+            where $( $args: 'a ),*, $provided: Send + Sync +'a, $return_type: 'a
+            {
+                fn provide(self, a: $provided) -> [<BoxedAsyncFn $return_fn_arg_size>]<'a, $($args),*, $return_type> {
+                    let r = [<provider_async_f $arg_size>](self, a);
+                    r
+                }
+            }
+        }
+    };
+}
+
+macro_rules! generate_boxed_fn {
+    ( [$($args:ident),*], $return_type:ident, $arg_size:expr ) => {
+
+            //let x = count!($($args),*);
+            concat_idents::concat_idents!(boxed_fn_name = BoxedFn,$arg_size  {
+                #[doc = concat!("Type alias  BoxedFn", stringify!($arg_size), "  for Boxed FnOnce sync function with ", stringify!($arg_size), " arguments")]
+                pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>;
+            });
+
+            concat_idents::concat_idents!(boxed_fn_name = BoxedAsyncFn,$arg_size  {
+                #[doc = concat!("Type alias  BoxedAsyncFn", stringify!($arg_size), "  for Boxed FnOnce async function" , stringify!($arg_size), " arguments")]
+                    pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> BoxFuture<'a, Result<$return_type, FnError>> + Send + Sync + 'a>;
+                });
+
+            paste!{
+                #[doc = concat!("Function to box FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedFn",stringify!($arg_size))]
+                pub fn [<lift_sync_fn $arg_size>]<'a, $($args),*, $return_type, F: FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>(f: F,) -> [<BoxedFn $arg_size>]<'a, $($args),*, $return_type> {
+                    Box::new(f)
+                }
+
+                #[doc = concat!("Function to box  FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedAsyncFn",stringify!($arg_size))]
+                pub fn [<lift_async_fn $arg_size>]<'a, $($args),*, $return_type, F: FnOnce($($args),*) -> BoxFuture<'a,Result<$return_type, FnError>> + Send + Sync + 'a>(f: F,) -> [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $return_type> {
+                    Box::new(f)
+                }
+            }
+    }
+}
+
+generate_boxed_fn! {[T1], T2, 1}
+
+generate_boxed_fn!([T1, T2], T3, 2);
+impl_injector! {[T1],T2, T3, 2, 1}
+
+generate_boxed_fn!([T1, T2, T3], T4, 3);
+impl_injector!([T1, T2], T3, T4, 3, 2);
+
+generate_boxed_fn!([T1, T2, T3, T4], T5, 4);
+impl_injector!([T1, T2, T3], T4, T5, 4, 3);
+
+generate_boxed_fn!([T1, T2, T3, T4, T5], T6, 5);
+impl_injector!([T1, T2, T3, T4], T5, T6, 5, 4);
+
+generate_boxed_fn!([T1, T2, T3, T4, T5, T6], T7, 6);
+impl_injector!([T1, T2, T3, T4, T5], T6, T7, 6, 5);
+
+generate_boxed_fn!([T1, T2, T3, T4, T5, T6, T7], T8, 7);
+impl_injector!([T1, T2, T3, T4, T5, T6], T7, T8, 7, 6);
+
+generate_boxed_fn!([T1, T2, T3, T4, T5, T6, T7, T8], T9, 8);
+impl_injector!([T1, T2, T3, T4, T5, T6, T7], T8, T9, 8, 7);
+
+//Generates a function composition for BoxedFn1 as below. The below is example of composing sync with sync function.
+//Similar code is generated for composing sync with async function, async with sync function and async with async function.
+// impl<'a, T1: 'a + Send, T2: 'a + Send, T3: 'a>
+// Then<'a, T1, T2, T3, BoxedFn1<'a, T2, T3>, BoxedFn1<'a, T1, T3>> for BoxedFn1<'a, T1, T2> {
+//     fn then(self, f: BoxedFn1<'a, T2, T3>) -> BoxedFn1<'a, T1, T3> {
+//         let r1 = move |x: T1| {
+//             let b = self(x)?;
+//             let r = f(b)?;
+//             Ok(r)
+//         };
+//         Box::new(r1)
+//     }
+// }
+composer_generator!(T1, T2, T3);
 
 #[derive(Debug)]
 pub enum ErrorType {
@@ -39,383 +208,58 @@ pub enum ErrorType {
     EmailAlreadyTaken(String),
 }
 
-impl Into<FnError> for ErrorType {
-    fn into(self) -> FnError {
-        FnError {
-            underlyingError: None,
-            errorType: self,
-        }
-    }
-}
 
-#[derive(Debug)]
-pub struct FnError {
-    pub underlyingError: Option<Box<dyn Error>>,
-    pub errorType: ErrorType,
-}
 
-unsafe impl Send for FnError {}
-unsafe impl Sync for FnError {}
 
-#[derive(Debug)]
-struct UnderlyingError {}
-impl Display for UnderlyingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self)
-    }
-}
-
-impl Error for UnderlyingError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-
-    fn description(&self) -> &str {
-        "description() is deprecated; use Display"
-    }
-
-    fn cause(&self) -> Option<&dyn Error> {
-        self.source()
-    }
-}
-
-pub type AppResult<T> = Result<T, FnError>;
-pub trait ToAppResult<T> {
-    fn to_app_result(self) -> AppResult<T>;
-}
-
-impl<T, E> ToAppResult<T> for Result<T, E>
-where
-    E: Error + 'static,
-{
-    fn to_app_result(self) -> AppResult<T> {
-        match self {
-            Ok(r) => Ok(r),
-            Err(e) => Err(FnError {
-                errorType: ErrorType::Unknown(e.to_string()),
-                underlyingError: Some(Box::new(e)),
-            }),
-        }
-    }
-}
-
-pub struct ErrorMapper<K, F> {
-    errorMap: Vec<(K, F)>,
-}
-
-impl<K, F> ErrorMapper<K, F>
-where
-    F: FnOnce() -> ErrorType,
-{
-    pub fn new() -> ErrorMapper<K, F> {
-        ErrorMapper {
-            errorMap: Vec::new(),
-        }
-    }
-
-    pub fn add(&mut self, k: K, f: F) -> &mut Self {
-        self.errorMap.push((k, f));
-        self
-    }
-
-    fn getErrorType(&self, k: &K) -> Option<&(K, F)> {
-        self.errorMap
-            .iter()
-            .find(|item| discriminant(&item.0) == discriminant(k))
-    }
-}
-
-pub fn convertToAppError<K, F>(e: &ErrorMapper<K, F>, err: K) -> FnError
-where
-    F: Fn() -> ErrorType,
-    K: Display,
-{
-    let matchingErrorType = e.getErrorType(&err);
-    if (matchingErrorType.is_some()) {
-        let borrow_mut = matchingErrorType.unwrap();
-        let var_name = &borrow_mut.1;
-        var_name().into()
-    } else {
-        ErrorType::Unknown(err.to_string()).into()
-    }
-}
-
-impl Display for ErrorType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Display for FnError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let x = &self.underlyingError;
-        write!(
-            f,
-            "({}, {})",
-            self.errorType,
-            match x {
-                Some(e) => e.deref().to_string(),
-                None => "None".to_string(),
-            }
-        )
-    }
-}
-
-impl Error for FnError {}
-
-impl From<String> for FnError {
-    fn from(_value: String) -> Self {
-        FnError {
-            errorType: ErrorType::Unknown(_value),
-            underlyingError: None,
-        }
-    }
-}
-
-pub fn composeWithFut<'a, A: Send + 'a, B: Send + 'a, C: 'a>(
-    f: BoxedAppFn<'a, B, C>,
-    g: BoxedFutAppFnOnce<'a, A, B>,
-) -> BoxedFutAppFnOnce<'a, A, C> {
-    let r1 = |x: A| {
-        async move {
-            let b = g(x).await?;
-
-            f(b)
-        }
-        .boxed()
-    };
-
-    Box::new(r1) as _
-}
-
-pub fn compose_fn<'a, A: 'a, B: 'a, C: 'a>(
-    f: BoxedAppFn<'a, B, C>,
-    g: BoxedAppFn<'a, A, B>,
-) -> BoxedAppFn<'a, A, C> {
-    let r1 = move |x: A| {
-        let b = g(x)?;
-        let r = f(b)?;
-        Ok(r)
-    };
-
-    Box::new(r1)
-}
-
-pub fn composeWithFut2<'a, A: Send + 'a, B: Send + 'a, C: 'a>(
-    f: BoxedFutAppFnOnce<'a, B, C>,
-    g: BoxedAppFn<'a, A, B>,
-) -> BoxedFutAppFnOnce<'a, A, C> {
-    let r1 = |a: A| {
-        async move {
-            let gResult = (g)(a);
-
-            match gResult {
-                Ok(b) => {
-                    let f = f(b).await;
-                    let fResult = f?;
-                    //sendFn(fResult);
-                    Ok(fResult)
-                    //Ok(Default::default())
-                }
-                Err(e) => Err(e),
-            }
-        }
-        .boxed()
-    };
-    Box::new(r1)
-}
-
-pub fn composeWithFut3<'a, A: Send + 'a, B: Send + 'a, C: 'a>(
-    f: BoxedFutAppFnOnce<'a, B, C>,
-    g: BoxedFutAppFnOnce<'a, A, B>,
-) -> BoxedFutAppFnOnce<'a, A, C> {
-    let r1 = |a: A| {
-        async move {
-            let gResult = g(a).await?;
-            f(gResult).await
-        }
-        .boxed()
-    };
-
-    let r: BoxedFutAppFnOnce<'a, A, C> = Box::new(r1);
-    r
-}
-
-pub fn p1<'a, A: 'a, B: 'a, C: 'a>(
-    fn1: BoxedAppFn2<'a, A, B, C>,
-    b: B,
-) -> BoxedAppFnOnce<'a, A, C> {
-    Box::new(move |a: A| fn1(a, b))
-}
-
-pub fn futp1<'a, A: Send + 'a, B: Send + Sync + 'a, C: Send + 'a>(
-    fn1: BoxedFutAppTwoArgFnOnce<'a, A, B, C>,
-    b: B,
-) -> BoxedFutAppFnOnce<'a, A, C> {
-    let x = move |a: A| fn1(a, b);
-    Box::new(x)
-}
-
-fn run_fn1<F: Fn() + Send + 'static>(f: F) {
-    let _hand = thread::spawn(f);
-}
-
-pub trait OwnedInjecter<I, O> {
+pub trait Injector<I, O> {
     fn provide(self, a: I) -> O;
 }
 
-impl<'a, A: 'a, B: 'a, C: 'a> OwnedInjecter<B, BoxedAppFnOnce<'a, A, C>>
-    for BoxedAppFn2<'a, A, B, C>
-{
-    fn provide(self, a: B) -> BoxedAppFnOnce<'a, A, C> {
-        let r = p1(self, a);
-        r
-    }
-}
+///trait Then allows you to compose functions.
+/// Type param A represents the function arg of Self
+///
+/// Type param B represents the return type of Self
+///
+///Type B also acts as the input arg of function f
+///
+/// Type C represents the return type of  function f
 
-impl<'a, A: Send + Sync + 'a, B: Send + Sync + 'a, C: Send + 'a>
-    OwnedInjecter<B, BoxedFutAppFnOnce<'a, A, C>> for BoxedFutAppTwoArgFnOnce<'a, A, B, C>
-{
-    fn provide(self, a: B) -> BoxedFutAppFnOnce<'a, A, C> {
-        let r = futp1(self, a);
-        r
-    }
-}
+pub trait Then<'a, A, B, C, F, R> {
 
-pub fn futf1<A, B>(
-    f: &'static (dyn Fn(A) -> BoxFuture<'static, Result<B, FnError>> + Send + Sync),
-) -> BoxedFutAppFnOnce<'static, A, B> {
-    Box::new(f) as _
-}
-
-pub trait AndThen<'a, A, B> {
-    fn then<C: 'a>(self, f: BoxedAppFn<'a, B, C>) -> BoxedAppFn<'a, A, C>;
-}
-
-pub trait AndThen1<'a, A, B, C, F, R> {
-    fn then1(self, f: F) -> R;
-}
-
-impl<'a, A: 'a, B: 'a, C: 'a> AndThen1<'a, A, B, C, BoxedAppFn<'a, B, C>, BoxedAppFn<'a, A, C>>
-    for BoxedAppFn<'a, A, B>
-{
-    fn then1(self, f: BoxedAppFn<'a, B, C>) -> BoxedAppFn<'a, A, C> {
-        compose_fn(f, self)
-    }
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send, C: 'a>
-    AndThen1<'a, A, B, C, BoxedFutAppFnOnce<'a, B, C>, BoxedFutAppFnOnce<'a, A, C>>
-    for BoxedFutAppFnOnce<'a, A, B>
-{
-    fn then1(self, f: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        composeWithFut3(f, self)
-    }
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send, C: 'a>
-    AndThen1<'a, A, B, C, BoxedAppFn<'a, B, C>, BoxedFutAppFnOnce<'a, A, C>>
-    for BoxedFutAppFnOnce<'a, A, B>
-{
-    fn then1(self, f: BoxedAppFn<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        composeWithFut(f, self)
-    }
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send, C: 'a>
-    AndThen1<'a, A, B, C, BoxedFutAppFnOnce<'a, B, C>, BoxedFutAppFnOnce<'a, A, C>>
-    for BoxedAppFn<'a, A, B>
-{
-    fn then1(self, f: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        composeWithFut2(f, self)
-    }
-}
-
-impl<'a, A: 'a, B: 'a> AndThen<'a, A, B> for BoxedAppFn<'a, A, B> {
-    fn then<C: 'a>(self, f: BoxedAppFn<'a, B, C>) -> BoxedAppFn<'a, A, C> {
-        compose_fn(f, self)
-    }
-}
-
-pub trait AsyncInto<'a, A, B> {
-    fn async_into<C: 'a>(self, f: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C>;
-}
-
-pub trait AsyncFrom<'a, A, B> {
-    fn async_out<C: 'a>(self, f: BoxedAppFn<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C>;
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send> AsyncFrom<'a, A, B> for BoxedFutAppFnOnce<'a, A, B> {
-    fn async_out<C: 'a>(self, g: BoxedAppFn<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        //let a = self;
-        let r = composeWithFut(g, self);
-        r
-    }
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send> AsyncInto<'a, A, B> for BoxedAppFn<'a, A, B> {
-    fn async_into<C: 'a>(self, g: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        //let a = self;
-        let r = composeWithFut2(g, self);
-        r
-    }
-}
-
-impl<'a, A: 'a + Send, B: 'a + Send> AsyncInto<'a, A, B> for BoxedFutAppFnOnce<'a, A, B> {
-    fn async_into<C: 'a>(self, g: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C> {
-        let r = composeWithFut3(g, self);
-        r
-    }
-}
-pub trait AsyncIntoBoxedFuture<'a, A, B> {
-    fn async_into1<C: 'a>(self, f: BoxedFutAppFnOnce<'a, B, C>) -> BoxedFutAppFnOnce<'a, A, C>;
-}
-
-fn futf2<'a, A, B, C, F: Fn(A, B) -> BoxFuture<'static, Result<C, FnError>> + 'static>(
-    f: F,
-) -> FutureAppFn2<'static, A, B, C> {
-    let f1: FutureAppFn2<'static, A, B, C> = Box::new(f);
-    f1
-}
-
-pub trait Lift<'a, I, O, A, B> {
-    fn lift(self, i: I) -> O;
-    //fn liftAsync(self,i: I)->R;
-}
-
-struct Lifter;
-
-pub fn liftTwoArgAsync<
-    'a,
-    A,
-    B,
-    C,
-    F: Fn(A, B) -> BoxFuture<'a, Result<C, FnError>> + 'a + Send + Sync,
->(
-    f: F,
-) -> BoxedFutAppTwoArgFnOnce<'a, A, B, C> {
-    Box::new(f)
-}
-
-pub fn liftAsync<'a, A, B, F: Fn(A) -> BoxFuture<'a, Result<B, FnError>> + 'a + Send + Sync>(
-    f: F,
-) -> BoxedFutAppFnOnce<'a, A, B> {
-    Box::new(f)
-}
-
-pub fn lift<'a, A, B, F: Fn(A) -> Result<B, FnError> + Send + Sync + 'a>(
-    f: F,
-) -> BoxedAppFn<'a, A, B> {
-    Box::new(f)
+    /// Compose self with function f
+    ///
+    /// self:function(A)->B
+    ///
+    /// f:function(B)->C
+    ///
+    /// returns function(A)->C
+    fn then(self, f: F) -> R;
 }
 
 #[macro_use]
 pub mod macros {
+    #[macro_export]
+    macro_rules! c1 {
+        ($fLeft:ident, $current_f:ident, true, true) => {
+            $fLeft.then_async(current_f)
+        };
+
+        ($fLeft:ident, $current_f:ident, true, false) => {
+            $fLeft.then_sync(current_f)
+        };
+
+        ($fLeft:ident, $current_f:ident, false, false) => {
+            $fLeft.then_sync(current_f)
+        };
+
+        ($fLeft:ident, $current_f:ident, false, true) => {
+            $fLeft.then_async(current_f)
+        };
+    }
 
     #[macro_export]
     macro_rules! compose {
-
-        ($fnLeft:ident,$isLeftFnAsync:ident,-> withArgs($args:expr) $($others:tt)*) => {
+        ($fnLeft:ident,$isLeftFnAsync:ident,-> with_args($args:expr) $($others:tt)*) => {
             {
             let r = $fnLeft($args);
             r
@@ -424,56 +268,121 @@ pub mod macros {
 
         ($fnLeft:ident,$isLeftFnAsync:ident,.provide($p1:expr) $($others:tt)*) => {
             {
-            let p = $fnLeft.provide($p1);
-            let p1 = compose!(p,$isLeftFnAsync,$($others)*);
-            p1
+                use fnutils::Injector;
+                let p = $fnLeft.provide($p1);
+                let p1 = compose!(p,$isLeftFnAsync,$($others)*);
+                p1
             }
-
-            //let p = provide!(f,$p1);
         };
+
+        ($fLeft:ident,$isLeftFnAsync:ident,$fRight:ident, $isRightAsync:ident,  .provide($p:expr) $($others:tt)*) =>{
+            {
+                let fRight = $fRight.provide($p);
+                let f3 = compose!($fLeft,$isLeftFnAsync,fRight,$isRightAsync,$($others)*);
+                f3
+            }
+        };
+
+        ($fLeft:ident,$isLeftFnAsync:ident,$fRight:ident, $isRightAsync:ident,  ->  $($others:tt)*) =>{
+            {
+                let fLeft = $fLeft.then($fRight);
+                let isLeftFnAsync = $isRightAsync || $isLeftFnAsync;
+                let f3 = compose!(fLeft,isLeftFnAsync, -> $($others)*);
+                f3
+            }
+        };
+
+        ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident.provide($p:expr) $($others:tt)*) =>{
+            {
+                let f4;
+                
+                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                    paste!{
+                    let is_retryable = [< fn_composer__is_retryable_ $fn >]();
+                    let current_f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([< fn_composer__ retry_ $fn>])
+                    };
+                    }
+                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
+                        let isRightAsync = asynCheckFn();
+                        let fRight = current_f.provide($p);
+                        let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
+                        f4 = f3;
+                    });
+                });
+                f4
+            }
+        };
+
+        ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident.provide($p:expr) $($others:tt)*) =>{
+            {
+                let f4;
+                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                    let is_retryable = [<fn_composer__is_retryable $fn>]();
+                    let current_f = if !is_retryable{
+                        [<lifted_fn_name $fn>]($fn)
+                    }else {
+                        [<lifted_fn_name $fn>]([<fn_composer__ retry_ $fn>])
+                    };
+                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
+                        let isRightAsync = asynCheckFn();
+                        let fRight = current_f.provide($p);
+                        let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
+                        f4 = f3;
+                    });
+                });
+                f4
+            }
+        };
+
 
         ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident $($others:tt)*) =>{
             {
-            let f4;
-            concat_idents::concat_idents!(lifted_fn_name = lifted_fn,_, $fn {
-                let current_f = lifted_fn_name($fn);
-                concat_idents::concat_idents!(asynCheckFn = async_, $fn {
+                let f4;
+                paste!{
+
+                    let asynCheckFn = [<fn_composer__is_async_ $fn>];
                     let currentAsync = asynCheckFn();
-
-                    let f3 = {
-
-                        $fLeft.then1(current_f)
-                    };
-
                     let _isResultAsync = currentAsync || $isLeftFnAsync;
-
+                    let is_retryable = [<fn_composer__is_retryable_ $fn>]();
+                    let current_f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([<fn_composer__ retry_ $fn>])
+                    };
+                    let f3 = $fLeft.then(current_f);
                     let f3 = compose!(f3,_isResultAsync,$($others)*);
                     f4 = f3;
-                });
-            });
-            f4
+                }
+                f4
             }
         };
+
+
 
         ($fn:ident $($others:tt)*) => {
             {
                 use paste::paste;
-                use fnutils::AndThen1;
+                use fnutils::Then;
                 let f2;
                 paste!{
-
-                    let f = [<lifted_fn_ $fn>]($fn);
-
-
-                    let isAsync = [<async_ $fn>]();
+                    let f = [<fn_composer__lifted_fn_ $fn>]($fn);
+                    let isAsync = [<fn_composer__is_async_ $fn>]();
+                    let is_retryable = [<fn_composer__is_retryable_ $fn>]();
+                    let f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([<fn_composer__ retry_ $fn>])
+                    };
                     let f1 = compose!(f,isAsync,$($others)*);
-
                     f2 = f1;
-                    //});
-
                 };
                 f2
             }
         };
+
+
     }
 }

@@ -12,8 +12,9 @@ syn = {version = "2.0.48", features = ["full", "parsing", "proc-macro"]}
 futures = "0.3.29"
 fnutils = {path = "../fnutils"}
 paste = "1.0.14"
-
-[dev-dependencies]
+retry = "2.0.0"
+tokio-retry = "0.3.0"
+tokio = { version = "1.38.0", features = ["sync"] }
 #tokio = { version = "1", features = ["full"] }
 
 [lib]

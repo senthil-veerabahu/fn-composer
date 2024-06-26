@@ -14,4 +14,6 @@ concat-idents = "1.1.5"
 
 [dev-dependencies]
 fnmacros = {path = "../fnmacros"}
+retry = "2.0.0"
 tokio = { version = "1", features = ["full"] }
+tokio-retry = "0.3.0"

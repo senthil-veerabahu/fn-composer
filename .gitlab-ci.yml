@@ -29,7 +29,8 @@ image: "rust:latest"
 test:cargo:
   script:
     - rustc --version && cargo --version  # Print version info for debugging
-    - cargo test --workspace --verbose
+    - cargo test --workspace --verbose  -- --test-threads=1
+
 
 # Optional: Use a third party library to generate gitlab junit reports
 # test:junit-report:
