@@ -1,16 +1,25 @@
 //un comment below lines to debug macros
-/*
-#![feature(trace_macros)]
-trace_macros!(true);
- */
+
+/*#![feature(trace_macros)]
+trace_macros!(true);*/
+
 
 use std::{error::Error, fmt::Display, ops::Deref};
+use std::env::Args;
+
 
 use futures::{future::BoxFuture, FutureExt};
 use paste::paste;
 
 
-pub type FnError = Box<dyn Error>;
+//pub type FnError = Box<dyn Error>;
+
+#[derive(Debug)]
+pub struct FnError{
+    pub underlying_error: Option<Box<dyn Error + Send>>,
+    pub error_code:Option<String>,
+    pub description: Option<String>
+}
 macro_rules! composer_generator {
     ($arg1:ident, $return_type1:ident, $return_type2:ident) => {
         paste!{
@@ -250,7 +259,7 @@ pub mod macros {
 
     #[macro_export]
     macro_rules! compose {
-        ($fnLeft:ident,$isLeftFnAsync:ident,-> withArgs($args:expr) $($others:tt)*) => {
+        ($fnLeft:ident,$isLeftFnAsync:ident,-> with_args($args:expr) $($others:tt)*) => {
             {
             let r = $fnLeft($args);
             r
@@ -286,9 +295,38 @@ pub mod macros {
         ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident.provide($p:expr) $($others:tt)*) =>{
             {
                 let f4;
-                concat_idents::concat_idents!(lifted_fn_name = lifted_fn,_, $fn {
-                    let current_f = lifted_fn_name($fn);
-                    concat_idents::concat_idents!(asynCheckFn = async_, $fn {
+                
+                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                    paste!{
+                    let is_retryable = [< fn_composer__is_retryable_ $fn >]();
+                    let current_f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([< fn_composer__ retry_ $fn>])
+                    };
+                    }
+                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
+                        let isRightAsync = asynCheckFn();
+                        let fRight = current_f.provide($p);
+                        let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
+                        f4 = f3;
+                    });
+                });
+                f4
+            }
+        };
+
+        ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident.provide($p:expr) $($others:tt)*) =>{
+            {
+                let f4;
+                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                    let is_retryable = [<fn_composer__is_retryable $fn>]();
+                    let current_f = if !is_retryable{
+                        [<lifted_fn_name $fn>]($fn)
+                    }else {
+                        [<lifted_fn_name $fn>]([<fn_composer__ retry_ $fn>])
+                    };
+                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
                         let isRightAsync = asynCheckFn();
                         let fRight = current_f.provide($p);
                         let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
@@ -303,16 +341,21 @@ pub mod macros {
         ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident $($others:tt)*) =>{
             {
                 let f4;
-                concat_idents::concat_idents!(lifted_fn_name = lifted_fn,_, $fn {
-                    let current_f = lifted_fn_name($fn);
-                    concat_idents::concat_idents!(asynCheckFn = async_, $fn {
-                        let currentAsync = asynCheckFn();
-                        let _isResultAsync = currentAsync || $isLeftFnAsync;
-                        let f3 = $fLeft.then(current_f);
-                        let f3 = compose!(f3,_isResultAsync,$($others)*);
-                        f4 = f3;
-                    });
-                });
+                paste!{
+
+                    let asynCheckFn = [<fn_composer__is_async_ $fn>];
+                    let currentAsync = asynCheckFn();
+                    let _isResultAsync = currentAsync || $isLeftFnAsync;
+                    let is_retryable = [<fn_composer__is_retryable_ $fn>]();
+                    let current_f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([<fn_composer__ retry_ $fn>])
+                    };
+                    let f3 = $fLeft.then(current_f);
+                    let f3 = compose!(f3,_isResultAsync,$($others)*);
+                    f4 = f3;
+                }
                 f4
             }
         };
@@ -325,8 +368,14 @@ pub mod macros {
                 use fnutils::Then;
                 let f2;
                 paste!{
-                    let f = [<lifted_fn_ $fn>]($fn);
-                    let isAsync = [<async_ $fn>]();
+                    let f = [<fn_composer__lifted_fn_ $fn>]($fn);
+                    let isAsync = [<fn_composer__is_async_ $fn>]();
+                    let is_retryable = [<fn_composer__is_retryable_ $fn>]();
+                    let f = if !is_retryable{
+                        [<fn_composer__lifted_fn_ $fn>]($fn)
+                    }else {
+                        [<fn_composer__lifted_fn_ $fn>]([<fn_composer__ retry_ $fn>])
+                    };
                     let f1 = compose!(f,isAsync,$($others)*);
                     f2 = f1;
                 };
