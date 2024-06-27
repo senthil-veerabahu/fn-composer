@@ -6,7 +6,7 @@ There are two macros required for the fn-composer function composition to work.
 
 Refer to invidvidual macro documentation below
 
- [Composeable macro documentation](./funciton-compose-proc-macros/README.md)
+ [Composeable macro documentation](./funciton-compose-proc-macros/)
 
- [Compose macro documentation](./funciton-compose/README.md)
+ [Compose macro documentation](./funciton-compose/)
 
