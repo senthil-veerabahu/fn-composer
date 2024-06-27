@@ -2,6 +2,75 @@
 
 /*#![feature(trace_macros)]
 trace_macros!(true);*/
+//! Crate `function-compose` provides utilities for composing functions and way to inject arguments to functions
+//! The composeable functions should return rust Result type with FnError as Err type
+//!
+//!
+//! ### Usage
+//! ```rust
+//! use function_compose::composeable;
+//! #[composeable()]
+//! pub fn add_10(a: i32) -> Result<i32, FnError> {
+//!     Ok(a + 10)
+//! }
+//! 
+//! ```
+//! 
+//! ##### The async function should return BoxFuture and the error type should be FnError.
+//! 
+//! ```rust
+//! use function_compose::composeable;
+//! use futures::{future::BoxFuture, FutureExt};
+//! #[composeable()]
+//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+//!     async move {
+//!         let r = a + b;
+//!         Ok(r)
+//!     }.boxed()
+//! }
+//! ```
+//! 
+//! ##### Composing async and sync functions usage
+//!
+//!```ignore
+//! use function_compose::compose;
+//! use fn_macros::composeable;
+//! use futures::{future::BoxFuture, FutureExt};
+//! #[composeable()]
+//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+//!     async move {
+//!         let r = a + b;
+//!         Ok(r)
+//!     }.boxed()
+//! }
+//! #[composeable()]
+//! pub fn add_10(a: i32) -> Result<i32, FnError> {
+//!     Ok(a + 10)
+//! }
+//! async fn test(){
+//!    let result = compose!(add_async.provide(10) -> add_100 -> with_args(10)).await;
+//!    assert_eq!(210, result.unwrap());
+//! }
+//! ```
+//! ##### Function argument injection usage
+//!```rust
+//! use function_compose::composeable;
+//! use futures::{future::BoxFuture, FutureExt};
+//! #[composeable()]
+//! pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, FnError>>{
+//!     async move{
+//!         let  r =   a + b + c;
+//!         Ok(r)
+//!     }.boxed()
+//! }
+//! ```
+//! ##### Example of multiple injection to async function
+//!
+//!```ignore
+//! use crate::compose;
+//! let result = compose!(add_3_arg_async.provide(100).provide(200) -> add_10 -> with_args(10)).await;
+//! assert_eq!(220, result.unwrap());
+//!```
 
 
 use std::{error::Error, fmt::Display, ops::Deref};
@@ -9,7 +78,7 @@ use std::env::Args;
 
 
 use futures::{future::BoxFuture, FutureExt};
-use paste::paste;
+//use paste::paste;
 
 
 //pub type FnError = Box<dyn Error>;
@@ -20,6 +89,11 @@ pub struct FnError{
     pub error_code:Option<String>,
     pub description: Option<String>
 }
+
+pub use function_compose_proc_macros::*;
+pub use paste::*;
+pub use concat_idents::concat_idents;
+
 macro_rules! composer_generator {
     ($arg1:ident, $return_type1:ident, $return_type2:ident) => {
         paste!{
@@ -132,12 +206,12 @@ macro_rules! generate_boxed_fn {
     ( [$($args:ident),*], $return_type:ident, $arg_size:expr ) => {
 
             //let x = count!($($args),*);
-            concat_idents::concat_idents!(boxed_fn_name = BoxedFn,$arg_size  {
+            crate::concat_idents!(boxed_fn_name = BoxedFn,$arg_size  {
                 #[doc = concat!("Type alias  BoxedFn", stringify!($arg_size), "  for Boxed FnOnce sync function with ", stringify!($arg_size), " arguments")]
                 pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> Result<$return_type, FnError> + Send + Sync + 'a>;
             });
 
-            concat_idents::concat_idents!(boxed_fn_name = BoxedAsyncFn,$arg_size  {
+            crate::concat_idents!(boxed_fn_name = BoxedAsyncFn,$arg_size  {
                 #[doc = concat!("Type alias  BoxedAsyncFn", stringify!($arg_size), "  for Boxed FnOnce async function" , stringify!($arg_size), " arguments")]
                     pub type boxed_fn_name<'a, $($args),*, $return_type,> = Box<dyn FnOnce($($args),*) -> BoxFuture<'a, Result<$return_type, FnError>> + Send + Sync + 'a>;
                 });
@@ -268,7 +342,7 @@ pub mod macros {
 
         ($fnLeft:ident,$isLeftFnAsync:ident,.provide($p1:expr) $($others:tt)*) => {
             {
-                use fnutils::Injector;
+                use crate::Injector;
                 let p = $fnLeft.provide($p1);
                 let p1 = compose!(p,$isLeftFnAsync,$($others)*);
                 p1
@@ -296,7 +370,7 @@ pub mod macros {
             {
                 let f4;
                 
-                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                crate::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
                     paste!{
                     let is_retryable = [< fn_composer__is_retryable_ $fn >]();
                     let current_f = if !is_retryable{
@@ -305,7 +379,7 @@ pub mod macros {
                         [<fn_composer__lifted_fn_ $fn>]([< fn_composer__ retry_ $fn>])
                     };
                     }
-                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
+                    crate::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
                         let isRightAsync = asynCheckFn();
                         let fRight = current_f.provide($p);
                         let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
@@ -319,14 +393,14 @@ pub mod macros {
         ($fLeft:ident,$isLeftFnAsync:ident,-> $fn:ident.provide($p:expr) $($others:tt)*) =>{
             {
                 let f4;
-                concat_idents::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
+                crate::concat_idents!(lifted_fn_name = fn_composer__lifted_fn,_, $fn {
                     let is_retryable = [<fn_composer__is_retryable $fn>]();
                     let current_f = if !is_retryable{
                         [<lifted_fn_name $fn>]($fn)
                     }else {
                         [<lifted_fn_name $fn>]([<fn_composer__ retry_ $fn>])
                     };
-                    concat_idents::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
+                    crate::concat_idents!(asynCheckFn = fn_composer__is_async_, $fn {
                         let isRightAsync = asynCheckFn();
                         let fRight = current_f.provide($p);
                         let f3 = compose!($fLeft,$isLeftFnAsync,fRight,isRightAsync,$($others)*);
@@ -364,10 +438,10 @@ pub mod macros {
 
         ($fn:ident $($others:tt)*) => {
             {
-                use paste::paste;
-                use fnutils::Then;
+
+                use crate::Then;
                 let f2;
-                paste!{
+                crate::paste!{
                     let f = [<fn_composer__lifted_fn_ $fn>]($fn);
                     let isAsync = [<fn_composer__is_async_ $fn>]();
                     let is_retryable = [<fn_composer__is_retryable_ $fn>]();
