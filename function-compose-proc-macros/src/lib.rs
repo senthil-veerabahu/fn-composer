@@ -247,7 +247,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
             let mut toeknStream: proc_macro::TokenStream = tokens.into();
             toeknStream.extend(item.into_iter());
-            println!("{}", toeknStream.to_string());
+            //println!("{}", toeknStream.to_string());
             toeknStream
         }
         SomeRetry(strategy) => {
