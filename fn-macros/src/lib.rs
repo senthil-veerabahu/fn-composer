@@ -120,6 +120,8 @@ impl Parse for OptionalRetry {
 fn generate_ident_with_prefix(ident: &str) -> String{
     format!("fn_composer__{}", ident)
 }
+
+
 #[proc_macro_attribute]
 pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
     use syn::parse::Parser;
@@ -222,7 +224,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 args: mut_arg_tokens,
             };
             let mut tokens: proc_macro2::TokenStream = quote! {
-                use fnutils::*;
+                use fn_compose::*;
 
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     #underlyingLiftFnNameIdent(f)
@@ -268,7 +270,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen(#function_mut_args)  #fnReturnType {
-                        use fnutils::*;
+                        use fn_compose::*;
                         use retry::*;
                         use tokio_retry::Retry as AsyncRetry;
                         use tokio::sync::Mutex;
@@ -294,7 +296,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen (#function_mut_args)  #fnReturnType {
-                        use fnutils::*;
+                        use fn_compose::*;
                         use retry::*;
                         //#( let #k => println!("{}", #v), )*
                         //let mut x = __a1.lock().unwrap();
@@ -317,7 +319,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let mut tokens: proc_macro2::TokenStream = quote! {
 
-                use fnutils::*;
+                use fn_compose::*;
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     //#lift_retry_fn_ident(#retryFnIdent)
                     #underlyingLiftFnNameIdent(f)

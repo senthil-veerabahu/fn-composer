@@ -4,13 +4,12 @@ use futures::{future::BoxFuture, FutureExt};
 use retry::delay::*;
 use tokio::sync::Mutex;
 
-use fnmacros::composeable;
-use fnutils::FnError;
+use fn_macros::composeable;
+use fn_compose::{FnError};
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
 fn add_retryable(a: &i32, b: &mut i32) -> Result<i32, FnError> {
     Ok(*a + *b)
-    //Ok(*a + *b)
 }
 
 #[composeable()]

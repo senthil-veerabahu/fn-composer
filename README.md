@@ -20,7 +20,7 @@ pub fn add_10(a: i32) -> Result<i32, FnError> {
 ```
 
 Below snippet is an async example. The async function should return BoxFuture and the error type should be FnError.
-Currently only two argument async functions are supported.
+
 
 ```rust
 #[composeable()]

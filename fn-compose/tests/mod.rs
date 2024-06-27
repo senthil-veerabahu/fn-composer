@@ -1,7 +1,7 @@
 #![cfg(test)]
 
-use fnmacros::composeable;
-use fnutils::{compose, BoxedFn1, FnError};
+use fn_macros::composeable;
+use fn_compose::{compose, BoxedFn1, FnError};
 use futures::{future::BoxFuture, FutureExt};
 use retry::delay::*;
 

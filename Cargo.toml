@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "fnutils",
-    "fnmacros"
+    "fn-compose",
+    "fn-macros",
+    "example"
 ]
