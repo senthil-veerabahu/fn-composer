@@ -1,7 +1,7 @@
 use futures::future::BoxFuture;
 use futures::FutureExt;
 use retry::delay::Fixed;
-use fn_compose::{composeable};
+use function_compose::{composeable};
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
 pub fn add_10(a: i32) -> Result<i32, FnError> {

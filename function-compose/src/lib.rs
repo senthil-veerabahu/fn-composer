@@ -2,13 +2,13 @@
 
 /*#![feature(trace_macros)]
 trace_macros!(true);*/
-//! Crate `fn-compose` provides utilities for composing functions and way to inject arguments to functions
+//! Crate `function-compose` provides utilities for composing functions and way to inject arguments to functions
 //! The composeable functions should return rust Result type with FnError as Err type
 //!
 //!
 //! ### Usage
 //! ```rust
-//! use fn_macros::composeable;
+//! use function_compose::composeable;
 //! #[composeable()]
 //! pub fn add_10(a: i32) -> Result<i32, FnError> {
 //!     Ok(a + 10)
@@ -19,7 +19,7 @@ trace_macros!(true);*/
 //! ##### The async function should return BoxFuture and the error type should be FnError.
 //! 
 //! ```rust
-//! use fn_macros::composeable;
+//! use function_compose::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
 //! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
@@ -33,7 +33,7 @@ trace_macros!(true);*/
 //! ##### Composing async and sync functions usage
 //!
 //!```ignore
-//! use fn_compose::compose;
+//! use function_compose::compose;
 //! use fn_macros::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
@@ -54,7 +54,7 @@ trace_macros!(true);*/
 //! ```
 //! ##### Function argument injection usage
 //!```rust
-//! use fn_macros::composeable;
+//! use function_compose::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
 //! pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, FnError>>{
@@ -90,7 +90,7 @@ pub struct FnError{
     pub description: Option<String>
 }
 
-pub use fn_macros::*;
+pub use function_compose_proc_macros::*;
 pub use paste::*;
 pub use concat_idents::concat_idents;
 
@@ -342,7 +342,7 @@ pub mod macros {
 
         ($fnLeft:ident,$isLeftFnAsync:ident,.provide($p1:expr) $($others:tt)*) => {
             {
-                use fn_compose::Injector;
+                use crate::Injector;
                 let p = $fnLeft.provide($p1);
                 let p1 = compose!(p,$isLeftFnAsync,$($others)*);
                 p1
@@ -438,8 +438,8 @@ pub mod macros {
 
         ($fn:ident $($others:tt)*) => {
             {
-                
-                use fn_compose::Then;
+
+                use crate::Then;
                 let f2;
                 crate::paste!{
                     let f = [<fn_composer__lifted_fn_ $fn>]($fn);

@@ -11,6 +11,8 @@ Declarative Macro - compose!
 Proc attribute macro composeable is add to any function that can be composed.
 e.g below is simple function to add 10 to a given number.
 
+
+ [Composeable macro documentation](./funciton-compose-proc-macros/README.MD)
 ```rust
 #[composeable()]
 pub fn add_10(a: i32) -> Result<i32, FnError> {

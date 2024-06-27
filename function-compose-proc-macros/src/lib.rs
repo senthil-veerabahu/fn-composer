@@ -224,7 +224,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 args: mut_arg_tokens,
             };
             let mut tokens: proc_macro2::TokenStream = quote! {
-                use fn_compose::*;
+                use function_compose::*;
 
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     #underlyingLiftFnNameIdent(f)
@@ -270,7 +270,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen(#function_mut_args)  #fnReturnType {
-                        use fn_compose::*;
+                        use function_compose::*;
                         use retry::*;
                         use tokio_retry::Retry as AsyncRetry;
                         use tokio::sync::Mutex;
@@ -296,13 +296,11 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen (#function_mut_args)  #fnReturnType {
-                        use fn_compose::*;
+                        use function_compose::*;
                         use retry::*;
-                        //#( let #k => println!("{}", #v), )*
-                        //let mut x = __a1.lock().unwrap();
+
                         let result = retry(#strategy_expr, ||{
                             let r:#returnTypeWithoutToken = #fnIdent(#function_args).into();
-                            //OperationResult::from()
                             r
                         });
                         match result{
@@ -319,7 +317,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let mut tokens: proc_macro2::TokenStream = quote! {
 
-                use fn_compose::*;
+                use function_compose::*;
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     //#lift_retry_fn_ident(#retryFnIdent)
                     #underlyingLiftFnNameIdent(f)

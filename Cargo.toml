@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "fn-compose",
-    "fn-macros",
+    "function-compose",
+    "function-compose-proc-macros",
     "example"
 ]
