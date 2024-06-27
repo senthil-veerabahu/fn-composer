@@ -4,9 +4,6 @@ function-compose is a function composition library that allows composition of as
 
 There are two macros required for the fn-composer function composition to work.
 
-Refer to invidvidual macro documentation below
+Refer to invidvidual macro documentation in the respective folder
 
- [Composeable macro documentation](./funciton-compose-proc-macros/)
-
- [Compose macro documentation](./funciton-compose/)
 
