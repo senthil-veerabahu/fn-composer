@@ -1,21 +1,28 @@
 [package]
-name = "fnmacros"
-version = "0.1.0"
+name = "function-compose-proc-macros"
+version = "0.1.1"
 edition = "2021"
+license = "MIT"
+repository = "https://gitlab.com/coderodent/fn-composer"
+description = "lib to allow composition of sync and async rust functions"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 proc-macro2 = "1.0"
 quote = {version= "1.0.35", features=["proc-macro"]}
-syn = {version = "2.0.48", features = ["full", "parsing", "proc-macro"]}
+syn = {version = "2.0.48", features = ["parsing", "proc-macro"]}
 futures = "0.3.29"
-fnutils = {path = "../fnutils"}
+
 paste = "1.0.14"
 retry = "2.0.0"
 tokio-retry = "0.3.0"
 tokio = { version = "1.38.0", features = ["sync"] }
 #tokio = { version = "1", features = ["full"] }
+
+
+[dev-dependencies]
+function-compose = {path = "../function-compose"}
 
 [lib]
 proc-macro = true

@@ -1,0 +1,21 @@
+[package]
+name = "function-compose"
+version = "0.1.2"
+edition = "2021"
+license = "MIT"
+repository = "https://gitlab.com/coderodent/fn-composer"
+description = "lib to allow composition of sync and async rust functions"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0.3.29"
+paste = "1.0.14"
+concat-idents = "1.1.5"
+function-compose-proc-macros = {path = "../function-compose-proc-macros", version = "0.1.1"}
+
+
+[dev-dependencies]
+retry = "2.0.0"
+tokio = { version = "1", features = ["full"] }
+tokio-retry = "0.3.0"

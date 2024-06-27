@@ -120,6 +120,8 @@ impl Parse for OptionalRetry {
 fn generate_ident_with_prefix(ident: &str) -> String{
     format!("fn_composer__{}", ident)
 }
+
+
 #[proc_macro_attribute]
 pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
     use syn::parse::Parser;
@@ -222,7 +224,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 args: mut_arg_tokens,
             };
             let mut tokens: proc_macro2::TokenStream = quote! {
-                use fnutils::*;
+                use function_compose::*;
 
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     #underlyingLiftFnNameIdent(f)
@@ -245,7 +247,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
             let mut toeknStream: proc_macro::TokenStream = tokens.into();
             toeknStream.extend(item.into_iter());
-            println!("{}", toeknStream.to_string());
+            //println!("{}", toeknStream.to_string());
             toeknStream
         }
         SomeRetry(strategy) => {
@@ -268,7 +270,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen(#function_mut_args)  #fnReturnType {
-                        use fnutils::*;
+                        use function_compose::*;
                         use retry::*;
                         use tokio_retry::Retry as AsyncRetry;
                         use tokio::sync::Mutex;
@@ -294,13 +296,11 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen (#function_mut_args)  #fnReturnType {
-                        use fnutils::*;
+                        use function_compose::*;
                         use retry::*;
-                        //#( let #k => println!("{}", #v), )*
-                        //let mut x = __a1.lock().unwrap();
+
                         let result = retry(#strategy_expr, ||{
                             let r:#returnTypeWithoutToken = #fnIdent(#function_args).into();
-                            //OperationResult::from()
                             r
                         });
                         match result{
@@ -311,13 +311,13 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
-            println!("#############################");
+            /*println!("#############################");
             println!("{}", retry_tokens);
-            println!("#############################");
+            println!("#############################");*/
 
             let mut tokens: proc_macro2::TokenStream = quote! {
 
-                use fnutils::*;
+                use function_compose::*;
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
                     //#lift_retry_fn_ident(#retryFnIdent)
                     #underlyingLiftFnNameIdent(f)
@@ -342,7 +342,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             toeknStream.extend(item.into_iter());
             toeknStream.extend(retry_token_stream.into_iter());
-            println!("{}", toeknStream.to_string());
+            /*println!("{}", toeknStream.to_string());*/
             toeknStream
         }
     }
