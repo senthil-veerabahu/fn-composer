@@ -311,9 +311,9 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
-            println!("#############################");
+            /*println!("#############################");
             println!("{}", retry_tokens);
-            println!("#############################");
+            println!("#############################");*/
 
             let mut tokens: proc_macro2::TokenStream = quote! {
 
@@ -342,7 +342,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             toeknStream.extend(item.into_iter());
             toeknStream.extend(retry_token_stream.into_iter());
-            println!("{}", toeknStream.to_string());
+            /*println!("{}", toeknStream.to_string());*/
             toeknStream
         }
     }
