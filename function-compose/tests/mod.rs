@@ -1,16 +1,36 @@
 #![cfg(test)]
 
-use function_compose::composeable;
-use function_compose::{compose, BoxedFn1, FnError};
+use function_compose::*;
 use futures::{future::BoxFuture, FutureExt};
 use retry::delay::*;
 
 static mut RETRY_COUNT: i32 = 0;
 
+trait TestTrait :Send + Sync{
+    fn do_work(&self) -> i32;
+}
+
+impl TestTrait for i32{
+    fn do_work(&self) -> i32{
+        0
+    }
+}
+
+//#[composeable()]
+fn do_work(a:i32, test:impl TestTrait)->Result<i32, FnError>{
+    Ok(0)
+}
+
+#[composeable()]
+fn do_work_with_box(a:i32, test:Box<dyn TestTrait> )->Result<i32, FnError>{
+    Ok(0)
+}
+
 #[composeable(retry = Fixed::from_millis(100).take(2))]
 pub fn add_10(a: i32) -> Result<i32, FnError> {
     Ok(a + 10)
 }
+
 
 #[composeable()]
 pub fn add_100(a: i32) -> Result<i32, FnError> {
@@ -136,6 +156,13 @@ fn test_compose_sync_functions() {
     assert_eq!(120, result.unwrap());
     let result = compose!(add_10 -> add_100 -> add_10 -> add_100 -> with_args(10));
     assert_eq!(230, result.unwrap());
+}
+
+#[test]
+fn test_box_dyn_trait() {
+    let trait_impl = Box::new(20) as Box<dyn TestTrait>;
+    let result:Result<i32, FnError> = compose!(do_work_with_box.provide(trait_impl) -> add_100 -> with_args(10));
+    assert_eq!(100, result.unwrap());    
 }
 
 #[tokio::test]
