@@ -1,0 +1,125 @@
+
+
+use axum::Json;
+use axum_macros::debug_handler;
+use diesel::serialize;
+use diesel_async::AsyncPgConnection;
+use function_compose::*;
+use futures::{FutureExt, future::BoxFuture};
+use serde::{Serialize, Deserialize};
+
+use crate::{axumutils::{DBConnectionHolder, AppState}, db::{DBConnection, DBConnProvider}, model::{RoleEntity, User}, repository::{repository::RepositoryDB, user_repository::{  AuthData, NewUser, UserRepository}}, utils::secutils::generate_jwt_token}; 
+use dotenv::dotenv;
+use std::{env, ops::Add, time::{Duration, SystemTime, UNIX_EPOCH}};
+use function_compose::composeable;
+use crate::fnutils::{AppError, ErrorObject, ErrorType, map_to_error_object, map_to_unknown_system_time_error, map_to_unknown_var_error, ToFnResult};
+
+
+#[composeable()]
+pub  fn authenticate(_authRequest: AuthRequest,_conn: &mut DBConnection) ->BoxFuture<Result<AuthData , FnError<ErrorType>>>{
+    async{
+        let value: &mut AsyncPgConnection = _conn.currentConnection().await?;
+        let mut userRepository = RepositoryDB::from(value);
+        let authData:AuthData = userRepository
+                .auth(String::from(_authRequest.user), String::from(_authRequest.pass)).await?;
+        
+        Ok(authData)
+    }.boxed()
+}
+
+#[composeable()]
+pub  fn generate_token<'a>(user_data: AuthData) ->BoxFuture<'a, Result<(User,String), FnError<ErrorType>>>{
+    async move{
+        let jwt_signing_key = env::var("JWT_SIGNING_KEY").map_err(map_to_unknown_var_error())?;
+        let user = user_data.0;
+        let role = &user_data.2;
+        let role_names:Vec<&str> = vec![&role.name];
+        let start = SystemTime::now();
+        let mut since_the_epoch = start.duration_since(UNIX_EPOCH).map_err(map_to_unknown_system_time_error())?;
+        since_the_epoch = since_the_epoch.add(Duration::from_secs(60*60));
+        let token = generate_jwt_token(&user.email, &user.email, jwt_signing_key,
+             role_names, (&user.isemail_verfied).clone().is_some_and(|r| r), 
+             (&user.is_phone_verfied).clone().is_some_and(|r|r), since_the_epoch)?; 
+        let result = (user, token);
+        Ok(result)
+    }.boxed()
+}
+
+
+#[derive(Serialize, Debug)]
+pub struct AuthResponse{
+    token: String,
+    emailVerified:        bool,
+    email:                String,
+    mobile:               String,
+    mobileVerifiedStatus: bool,
+    isActive:             bool,
+    locationIdentified:   bool,
+}
+
+#[composeable()]
+pub fn  pack_auth_result(userData: (User, String))-> Result<AuthResponse, FnError<ErrorType>>{
+    Ok(AuthResponse{
+        token: userData.1,
+        emailVerified: userData.0.isemail_verfied.is_some_and(|e|e),
+        email: userData.0.email,
+        mobile: userData.0.phone_number.unwrap_or_default(),
+        mobileVerifiedStatus: userData.0.is_phone_verfied.is_some_and(|e|e),
+        isActive: userData.0.is_active.is_some_and(|e|e),
+        locationIdentified:false,
+    })
+}
+
+
+impl From<CreateUserRequest> for NewUser{
+    fn from(create_user_request: CreateUserRequest) -> Self {
+        NewUser{
+            name: create_user_request.name,
+            first_name: create_user_request.first_name,
+            last_name: create_user_request.last_name,
+            email: create_user_request.email,
+            password: create_user_request.password
+        }
+    }
+} 
+
+#[debug_handler(state=AppState)]
+pub async  fn create_mobile_user_handler(mut dbConn1: DBConnectionHolder, Json(payload): Json<CreateUserRequest>)->Result<Json<User>, ErrorObject>{
+    let user = compose!(create_mobile_user.provide(&mut dbConn1) -> with_args(payload)).await.map_err(map_to_error_object())?;
+    //.await?;
+    Ok(Json(user))
+}
+
+#[composeable()]
+pub fn create_mobile_user(create_user_request:CreateUserRequest,_conn: &mut DBConnection)->BoxFuture<Result<User, FnError<ErrorType>>>{
+    async{
+        let value: &mut AsyncPgConnection = _conn.currentConnection().await?;
+        let mut userRepository = RepositoryDB::from(value);
+        let user = userRepository.create_mobile_user(NewUser::from(create_user_request)).await?;
+        Ok(user)
+    }.boxed()
+}
+
+pub fn AuthRequestFrom(user:String, pass: String)->AuthRequest{
+    AuthRequest{
+        user: user,
+        pass: pass
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AuthRequest{
+    user:String,
+    pass:String
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateUserRequest{
+    name:String,
+    first_name:String,
+    last_name: String,
+    email: String,
+    password: String,
+}
+

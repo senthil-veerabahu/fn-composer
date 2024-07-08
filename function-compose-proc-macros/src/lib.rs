@@ -193,20 +193,22 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
         let fun_arg_params = generate_generics_parameters((argLength) as u8);
         let return_type_param = generate_return_type_param((argLength + 1) as u8);
         let funGen = if (asyncFn) {
+            let gen = format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, FnError<E1>>> + 'a + Send +Sync>", );            
             syn::parse_str::<syn::Generics>(
-                format!("<'a, {gen_type_params} F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, FnError>> + 'a + Send +Sync>", ).as_str()
+                gen.as_str()
             ).ok()
                 .unwrap()
         } else {
+            let gen  =format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->Result<{return_type_param}, FnError<E1>> + Send +Sync + 'a>");            
             syn::parse_str::<syn::Generics>(
-                format!("<'a, {gen_type_params} F:Fn({fun_arg_params})->Result<{return_type_param}, FnError> + Send +Sync + 'a>").as_str()
+                gen.as_str()                
             ).ok().unwrap()
         };
 
         let returnTypeIdent = syn::Ident::new(returnType.as_str(), proc_macro2::Span::call_site());
         let underlyingLiftFnNameIdent =
             syn::Ident::new(underlyingLiftFnName.as_str(), proc_macro2::Span::call_site());
-        let retGen = syn::parse_str::<syn::Generics>(format!("<'a,{gen_type_params}>").as_str()).ok().unwrap();
+        let retGen = syn::parse_str::<syn::Generics>(format!("<'a,{gen_type_params} E1>").as_str()).ok().unwrap();
 
         (
             returnType,

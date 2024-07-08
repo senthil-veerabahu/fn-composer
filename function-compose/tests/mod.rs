@@ -17,28 +17,28 @@ impl TestTrait for i32{
 }
 
 //#[composeable()]
-fn do_work(a:i32, test:impl TestTrait)->Result<i32, FnError>{
+fn do_work(a:i32, test:impl TestTrait)->Result<i32, FnError<String>>{
     Ok(0)
 }
 
 #[composeable()]
-fn do_work_with_box(a:i32, test:Box<dyn TestTrait> )->Result<i32, FnError>{
+fn do_work_with_box(a:i32, test:Box<dyn TestTrait> )->Result<i32, FnError<String>>{
     Ok(0)
 }
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_10(a: i32) -> Result<i32, FnError> {
+pub fn add_10(a: i32) -> Result<i32, FnError<String>> {
     Ok(a + 10)
 }
 
 
 #[composeable()]
-pub fn add_100(a: i32) -> Result<i32, FnError> {
+pub fn add_100(a: i32) -> Result<i32, FnError<String>> {
     Ok(a + 100)
 }
 
 #[composeable()]
-pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + b;
         Ok(r)
@@ -47,7 +47,7 @@ pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
 }
 
 #[composeable()]
-pub fn add_3_arg_async(a: i32, b: i32, c: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_3_arg_async(a: i32, b: i32, c: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + b + c;
         Ok(r)
@@ -60,7 +60,7 @@ pub fn add_3_arg_ref_async<'a>(
     a: &'a i32,
     b: &'a i32,
     c: &'a i32,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     
         async move {
             if (retry_count_lessthan(2)) {
@@ -79,7 +79,7 @@ pub fn add_3_arg_ref_async<'a>(
 }
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_3_arg_ref<'a>(a: &'a i32, b: &'a i32, c: &'a i32) -> Result<i32, FnError> {
+pub fn add_3_arg_ref<'a>(a: &'a i32, b: &'a i32, c: &'a i32) -> Result<i32, FnError<String>> {
 
     if (retry_count_lessthan(2)) {
         increment_retry_count();
@@ -98,7 +98,7 @@ pub fn add_vec_size_ref__non_copy_sync<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> Result<i32, FnError> {
+) -> Result<i32, FnError<String>> {
     if (retry_count_lessthan(2)) {
         increment_retry_count();
         return Err(FnError {
@@ -111,12 +111,45 @@ pub fn add_vec_size_ref__non_copy_sync<'a>(
     Ok(r as i32)
 }
 
+/*use function_compose::*;
+pub fn fn_composer__lifted_fn_add_vec_size_ref__non_copy_async<'a, T1, T2, T3, T4, F: Fn(T1, T2, T3) -> BoxFuture<'a, Result<T4, FnError>> + 'a + Send + Sync>(f: F) -> BoxedAsyncFn3<'a, T1, T2, T3, T4, > { lift_async_fn3(f) }
+pub fn fn_composer__is_retryable_add_vec_size_ref__non_copy_async() -> bool { true }
+pub fn fn_composer__is_async_add_vec_size_ref__non_copy_async() -> bool { true }
+
+pub fn fn_composer__retry_add_vec_size_ref__non_copy_async<'a>(
+    mut a: &'a mut Vec<String>,
+    mut b: &'a mut Vec<String>,
+    mut c: &'a Vec<String>,
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
+    use function_compose::*;
+    use retry::*;
+    use tokio_retry::Retry   as AsyncRetry;
+    use tokio::sync::Mutex;
+    use std::ops::{Deref, DerefMut};
+    async {
+        let mut a = Mutex::new(a);
+        let mut b = Mutex::new(b);
+        let result = AsyncRetry::spawn(Fixed::from_millis(100).take(2), || async {
+            let mut a = a.lock().await;
+            let mut b = b.lock().await;
+            ;
+            let r = add_vec_size_ref__non_copy_async(a.deref_mut(), b.deref_mut(), c);
+            r.await
+        });
+        let result = match result.await {
+            Ok(result) => Ok(result),
+            Err(e) => Err(e)
+        };
+        result
+    }.boxed()
+}*/
+
 #[composeable(retry = Fixed::from_millis(100).take(2))]
 pub fn add_vec_size_ref__non_copy_async<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     async move {
         if (retry_count_lessthan(2)) {
             increment_retry_count();
@@ -133,7 +166,7 @@ pub fn add_vec_size_ref__non_copy_async<'a>(
 }
 
 #[composeable()]
-pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a * b;
         Ok(r)
@@ -142,7 +175,7 @@ pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>
 }
 
 #[composeable]
-pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + 100;
         Ok(r)
@@ -161,7 +194,7 @@ fn test_compose_sync_functions() {
 #[test]
 fn test_box_dyn_trait() {
     let trait_impl = Box::new(20) as Box<dyn TestTrait>;
-    let result:Result<i32, FnError> = compose!(do_work_with_box.provide(trait_impl) -> add_100 -> with_args(10));
+    let result:Result<i32, FnError<String>> = compose!(do_work_with_box.provide(trait_impl) -> add_100 -> with_args(10));
     assert_eq!(100, result.unwrap());    
 }
 
@@ -183,7 +216,7 @@ async fn test_compose_async_functions() {
     assert_eq!(410, result.unwrap());
 
     //Test composing single arg sync function with  two arg async function
-    let result: Result<i32, FnError> =
+    let result: Result<i32, FnError<String>> =
         compose!(add_100 -> add_3_arg_async.provide(1).provide(1) -> with_args(10)).await;
     assert_eq!(112, result.unwrap());
 
