@@ -36,9 +36,9 @@ pub async  fn create_mobile_user_handler(mut db_conn1: DBConnectionHolder, Json(
 
 
 #[debug_handler(state=AppState)]
-pub async fn user_auth_handler( mut dbConn1: DBConnectionHolder, Json(auth_request): Json<AuthRequest>)-> Result<Json<AuthResponse>, ErrorObject>{
+pub async fn user_auth_handler(mut db_conn1: DBConnectionHolder, Json(auth_request): Json<AuthRequest>) -> Result<Json<AuthResponse>, ErrorObject>{
         let r:AuthResponse = compose!(
-            authenticate.provide(&mut dbConn1) -> 
+            authenticate.provide(&mut db_conn1) -> 
             generate_token -> 
             pack_auth_result -> 
             with_args(auth_request)).await?;                

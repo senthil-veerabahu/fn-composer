@@ -368,7 +368,6 @@ fn filter_mutable_args<'a>(function_args: &'a FunctionArgs) -> Vec<&'a &'a FnArg
                     }
                 }
             }
-            return false;
         })
         .collect()
 }

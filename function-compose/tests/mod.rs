@@ -17,7 +17,7 @@ impl TestTrait for i32{
 }
 
 //#[composeable()]
-fn do_work(a:i32, test:impl TestTrait)->Result<i32, FnError<String>>{
+fn do_work(_a:i32, _test:impl TestTrait)->Result<i32, FnError<String>>{
     Ok(0)
 }
 

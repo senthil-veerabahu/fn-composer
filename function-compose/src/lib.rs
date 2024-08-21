@@ -99,7 +99,7 @@ impl From<String> for FnError<String>{
         };
     }
 }
-fn ToFnError<E1, E2>(fn_error:FnError<E1>)-> FnError<E2> where E2:From<E1>{
+fn to_fn_error<E1, E2>(fn_error:FnError<E1>) -> FnError<E2> where E2:From<E1>{
         let underlying_error = match fn_error.underlying_error{
             None => {None}
             Some(error) => {Some(From::from(error))}
@@ -134,7 +134,7 @@ macro_rules! composer_generator {
                         let gResult = self(x);
                         match gResult{
                                 Ok(innerResult) => f(innerResult),
-                                Err(error) =>   Err(ToFnError(error)),
+                                Err(error) =>   Err(to_fn_error(error)),
                             }
                     };
                     Box::new(r1)
@@ -151,7 +151,7 @@ macro_rules! composer_generator {
                             let gResult = self(x);
                             match gResult{
                                 Ok(innerResult) => f(innerResult).await,
-                                Err(error) =>   Err(ToFnError(error)),
+                                Err(error) =>   Err(to_fn_error(error)),
                             }
                             //f(b).await
                         }.boxed()
@@ -171,7 +171,7 @@ macro_rules! composer_generator {
                             let gResult = self(a).await;
                             match gResult{
                                 Ok(innerResult) => f(innerResult),
-                                Err(error) =>   Err(ToFnError(error)),
+                                Err(error) =>   Err(to_fn_error(error)),
                             }
                         }.boxed()
                     };
@@ -191,7 +191,7 @@ macro_rules! composer_generator {
                             let gResult = self(a).await;
                             match gResult{
                                 Ok(innerResult) => f(innerResult).await,
-                                Err(error) =>   Err(ToFnError(error)),
+                                Err(error) =>   Err(to_fn_error(error)),
                             }
                         }.boxed()
                     };
