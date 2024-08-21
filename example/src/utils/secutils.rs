@@ -5,15 +5,15 @@ use jwt::Token;
 use jwt::VerifyWithKey;
 use jwt::{Claims, RegisteredClaims, SignWithKey};
 use sha2::Sha256;
-use std::error::Error;
-use std::ops::Add;
+
+
 use std::{collections::BTreeMap};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration};
 use serde_json::Value;
 use function_compose::FnError;
-use crate::fnutils::{AppResult, ErrorType, FnResult,  map_hmac_invalid_length_to_unknown_error, map_jwt_error_to_unknown_error, map_to_unknown_error, ToAppResult, ToFnResult};
+use crate::fnutils::{ErrorType, FnResult,  map_hmac_invalid_length_to_unknown_error, map_jwt_error_to_unknown_error};
 
-use crate::schema::users::is_phone_verfied;
+
 
 /*
 
@@ -54,7 +54,7 @@ pub fn generate_jwt_token(name: &String, email: &String, jwt_signing_key: String
     claims.insert("exp".to_owned(), Value::String(expires_in.as_secs().to_string()));
     
     
-    let mut registered_claims:RegisteredClaims = Default::default();
+    let registered_claims:RegisteredClaims = Default::default();
     //registered_claims.expiration = Some(expires_in.as_secs());
     let all_claims = Claims{
         private: claims,

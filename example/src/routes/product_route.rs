@@ -1,7 +1,7 @@
 use axum::Json;
 use axum_macros::debug_handler;
 use futures::FutureExt;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use uuid::Uuid;
 
 use function_compose::*;
@@ -20,7 +20,7 @@ pub struct GetProductRequest {
 
 
 #[debug_handler(state=AppState)]
-pub async fn get_product_by_ids(Qs(get_product_request_data): Qs<GetProductRequest>, mut dbConn1: DBConnectionHolder, auth_user_data:AuthUserData) -> Result<Json<ProductListDTO>, ErrorObject> {
+pub async fn get_product_by_ids(Qs(get_product_request_data): Qs<GetProductRequest>, mut dbConn1: DBConnectionHolder, _auth_user_data:AuthUserData) -> Result<Json<ProductListDTO>, ErrorObject> {
     let result:ProductListDTO = compose!(find_product_by_ids.provide(&mut dbConn1) -> pack_product_data -> with_args(get_product_request_data.ids)).await?;
     Ok(Json(result))
 }

@@ -1,11 +1,11 @@
-use std::{collections::BTreeMap, convert::Infallible, env, ops::{DerefMut, Deref}};
+use std::{convert::Infallible, env, ops::{DerefMut, Deref}};
 
-use axum::{extract::{FromRef, FromRequest, FromRequestParts, State}, async_trait, http::request::Parts, RequestPartsExt, Json};
+use axum::{extract::{FromRef, FromRequestParts, State}, async_trait, http::request::Parts, RequestPartsExt, Json};
 use axum::response::{IntoResponse, Response};
 use axum::http::StatusCode;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use function_compose::FnError;
-use jwt::{Header, Token, VerifyWithKey};
+
 use crate::fnutils::*;
 use crate::{db::{createConnectionPool, DBConnection}};
 use crate::fnutils::ErrorType::EntityNotFound;
@@ -140,16 +140,16 @@ trait ToHttpStatusCode {
 impl ToHttpStatusCode for ErrorObject{
     fn to_http_status_code(&self) -> StatusCode{
         match &self.error_type{
-            ErrorType::UserNotFound(s) => {
+            ErrorType::UserNotFound(_s) => {
                 StatusCode::BAD_REQUEST
             }
-            ErrorType::AuthError(s) => {
+            ErrorType::AuthError(_s) => {
                 StatusCode::UNAUTHORIZED
             }
-            ErrorType::RoleNotFound(s) => {
+            ErrorType::RoleNotFound(_s) => {
                 StatusCode::UNAUTHORIZED
             }
-            EntityNotFound(s) => {
+            EntityNotFound(_s) => {
                 StatusCode::BAD_REQUEST
             }
             ErrorType::Unknown(_) => {
@@ -162,10 +162,10 @@ impl ToHttpStatusCode for ErrorObject{
                 StatusCode::INTERNAL_SERVER_ERROR
 
             }
-            ErrorType::InvalidInput(s) => {
+            ErrorType::InvalidInput(_s) => {
                 StatusCode::BAD_REQUEST
             }
-            ErrorType::EmailAlreadyTaken(s) => {
+            ErrorType::EmailAlreadyTaken(_s) => {
                 StatusCode::BAD_REQUEST
             }
         }
@@ -186,7 +186,7 @@ impl<S> FromRequestParts<S> for AuthUserData where AppState: FromRef<S>, S:Send+
 
     type Rejection = ErrorObject;
 
-    async fn from_request_parts(req:  &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req:  &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let authOption = req.headers.get(axum::http::header::AUTHORIZATION);
         let r:Result<AuthUserData, ErrorObject> = match authOption{
             Some(authHeaderValue) => {
@@ -248,7 +248,7 @@ where
 {
     type Rejection = Infallible;
 
-    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // TODO: error handling
         let query = req.uri.query().unwrap();        
         let from_str = serde_qs::from_str(query);

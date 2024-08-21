@@ -2,17 +2,17 @@
 
 use axum::Json;
 use axum_macros::debug_handler;
-use diesel::serialize;
+
 use diesel_async::AsyncPgConnection;
 use function_compose::*;
 use futures::{FutureExt, future::BoxFuture};
 use serde::{Serialize, Deserialize};
 
-use crate::{axumutils::{DBConnectionHolder, AppState}, db::{DBConnection, DBConnProvider}, model::{RoleEntity, User}, repository::{repository::RepositoryDB, user_repository::{  AuthData, NewUser, UserRepository}}, utils::secutils::generate_jwt_token}; 
-use dotenv::dotenv;
+use crate::{axumutils::{DBConnectionHolder, AppState}, db::{DBConnection, DBConnProvider}, model::{User}, repository::{repository::RepositoryDB, user_repository::{  AuthData, NewUser, UserRepository}}, utils::secutils::generate_jwt_token}; 
+
 use std::{env, ops::Add, time::{Duration, SystemTime, UNIX_EPOCH}};
 use function_compose::composeable;
-use crate::fnutils::{AppError, ErrorObject, ErrorType, map_to_error_object, map_to_unknown_system_time_error, map_to_unknown_var_error, ToFnResult};
+use crate::fnutils::{ErrorObject, ErrorType, map_to_error_object, map_to_unknown_system_time_error, map_to_unknown_var_error};
 
 
 #[composeable()]

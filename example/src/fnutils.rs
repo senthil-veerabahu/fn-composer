@@ -3,7 +3,7 @@ use std::env::VarError;
 use std::str::Utf8Error;
 use std::time::SystemTimeError;
 use axum::http::StatusCode;
-use futures::future::err;
+
 
 use hmac::digest::InvalidLength;
 use serde::Serialize;
@@ -45,16 +45,16 @@ impl HttpErrorObject{
     pub fn new(error_object: ErrorObject)->Self{
 
         let status_code = match &error_object.error_type{
-            ErrorType::UserNotFound(s) => {
+            ErrorType::UserNotFound(_s) => {
                 StatusCode::BAD_REQUEST
             }
-            ErrorType::AuthError(s) => {
+            ErrorType::AuthError(_s) => {
                  StatusCode::UNAUTHORIZED
             }
-            ErrorType::RoleNotFound(s) => {
+            ErrorType::RoleNotFound(_s) => {
                 StatusCode::UNAUTHORIZED
             }
-            EntityNotFound(s) => {
+            EntityNotFound(_s) => {
                 StatusCode::BAD_REQUEST
             }
             ErrorType::Unknown(_) => {
@@ -67,10 +67,10 @@ impl HttpErrorObject{
                 StatusCode::INTERNAL_SERVER_ERROR
 
             }
-            ErrorType::InvalidInput(s) => {
+            ErrorType::InvalidInput(_s) => {
                 StatusCode::BAD_REQUEST
             }
-            ErrorType::EmailAlreadyTaken(s) => {
+            ErrorType::EmailAlreadyTaken(_s) => {
                 StatusCode::BAD_REQUEST
             }
 
@@ -108,8 +108,8 @@ impl ErrorObject{
 impl From<FnError<ErrorType>> for ErrorObject{
     fn from(value: FnError<ErrorType>) -> Self {
         match value{
-            FnError { underlying_error, error_code, description } => {
-                if(underlying_error.is_some()){
+            FnError { underlying_error, error_code: _, description: _ } => {
+                if underlying_error.is_some() {
                     underlying_error.unwrap().to_error_object()
                 }else{
                     ErrorObject::new("E105".to_owned(),None, ErrorType::Unknown(String::new()))
@@ -122,8 +122,8 @@ impl From<FnError<ErrorType>> for ErrorObject{
 pub fn map_to_error_object()-> fn(FnError<ErrorType>)->ErrorObject{
     |e|{
         match e{
-            FnError { underlying_error, error_code, description } => {
-                if(underlying_error.is_some()){
+            FnError { underlying_error, error_code: _, description: _ } => {
+                if underlying_error.is_some() {
                     underlying_error.unwrap().to_error_object()
                 }else{
                     ErrorObject::new("E105".to_owned(),None, ErrorType::Unknown(String::new()))
@@ -259,7 +259,7 @@ impl From<diesel::result::Error> for ErrorType{
             diesel::result::Error::NotFound => {
                 ErrorType::EntityNotFound(error.to_string())
             },
-            E_ => {ErrorType::DBError(error.to_string())}
+            _E_ => {ErrorType::DBError(error.to_string())}
             
             
         }
@@ -429,7 +429,7 @@ where
     K: Display,
 {
     let matchingErrorType = e.getErrorType(&err);
-    if (matchingErrorType.is_some()) {
+    if matchingErrorType.is_some() {
         let borrow_mut = matchingErrorType.unwrap();
         let var_name = &borrow_mut.1;
         var_name().into()
@@ -444,7 +444,7 @@ pub fn convertToFnError<K, F>(e: &ErrorMapper<K, F>, err: K) -> FnError<ErrorTyp
         K: Display,
 {
     let matchingErrorType = e.getErrorType(&err);
-    if (matchingErrorType.is_some()) {
+    if matchingErrorType.is_some() {
         let borrow_mut = matchingErrorType.unwrap();
         let var_name = &borrow_mut.1;
         var_name().into()

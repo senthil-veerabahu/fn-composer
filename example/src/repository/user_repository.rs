@@ -1,11 +1,11 @@
 use std::env;
-use std::fmt::Display;
+
 
 use axum::async_trait;
-use bcrypt::BcryptError;
+
 use bcrypt::verify;
 use bcrypt::hash;
-use diesel::associations::HasTable;
+
 use diesel::ExpressionMethods;
 
 use diesel::QueryDsl;
@@ -18,7 +18,7 @@ use diesel::sql_function;
 use diesel::sql_types::Text;
 use diesel_async::RunQueryDsl;
 use diesel::JoinOnDsl;
-use diesel::BelongingToDsl;
+
 use function_compose::{FnError};
 use serde::Deserialize;
 use uuid::Uuid;
@@ -30,13 +30,13 @@ use crate::schema::role_entities;
 use crate::schema::roles;
 use crate::schema::role_entities::logger_id;
 
-use crate::schema::users::{email, first_name, user_id};
+use crate::schema::users::{email, user_id};
 use crate::schema::roles::columns as RoleTable;
 
 
 use crate::{ schema::users::dsl::*, schema::roles::dsl::*, schema::role_entities::dsl::*};
-use crate::fnutils::{convertToAppError, convertToFnError, ErrorMapper, ErrorType, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_error, map_to_unknown_var_error, ToAppResult, ToFnResult};
-use crate::fnutils::ErrorType::RoleNotFound;
+use crate::fnutils::{convertToFnError, ErrorMapper, ErrorType, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_var_error};
+
 
 
 use super::repository::RepositoryDB;
@@ -68,7 +68,7 @@ impl<'a> UserRepository for RepositoryDB<'a>{
         let result = userResult.map_err(|e| convertToFnError(ErrorMapper::new().add(Error::NotFound, var_name), e));
         let user = result?;
         let valid = verify(pass, (&user[0]).0.password.as_ref()).map_err(map_to_unknown_bcrypt_error())?;
-        if(!valid || user.is_empty()) {
+        if !valid || user.is_empty() {
             return Err(ErrorType::AuthError(userName).into());
         }
         Ok(user.into_iter().next().unwrap())

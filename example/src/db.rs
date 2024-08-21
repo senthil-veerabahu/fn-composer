@@ -1,5 +1,5 @@
 use std::env;
-use std::error::Error;
+
 
 use axum::async_trait;
 use dotenv::dotenv;
@@ -7,7 +7,7 @@ use dotenv::dotenv;
 use diesel_async::{AsyncPgConnection, pooled_connection::{deadpool::{Pool, Object}, AsyncDieselConnectionManager}};
 use function_compose::FnError;
 use crate::fnutils::{ErrorType, ErrorTypeInfo};
-use crate::fnutils::ErrorType::DBInitError;
+
 
 
 pub struct DBConnection{
