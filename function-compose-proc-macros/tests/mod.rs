@@ -8,12 +8,12 @@ use function_compose::composeable;
 use function_compose::{FnError};
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-fn add_retryable(a: &i32, b: &mut i32) -> Result<i32, FnError> {
+fn add_retryable(a: &i32, b: &mut i32) -> Result<i32, FnError<String>> {
     Ok(*a + *b)
 }
 
 #[composeable()]
-fn add(a: &i32, b: &mut i32) -> Result<i32, FnError> {
+fn add(a: &i32, b: &mut i32) -> Result<i32, FnError<String>> {
     Ok(*a + *b)
     //Ok(*a + *b)
 }
@@ -22,7 +22,7 @@ fn add(a: &i32, b: &mut i32) -> Result<i32, FnError> {
 pub fn add_async_retryable<'l>(
     a: &'l mut i32,
     b: &'l mut i32,
-) -> BoxFuture<'l, Result<i32, FnError>> {
+) -> BoxFuture<'l, Result<i32, FnError<String>>> {
     async move {
         let r = *a + *b;
         Ok(r)
@@ -31,7 +31,7 @@ pub fn add_async_retryable<'l>(
 }
 
 #[composeable()]
-pub fn add_async<'l>(a: &'l mut i32, b: &'l mut i32) -> BoxFuture<'l, Result<i32, FnError>> {
+pub fn add_async<'l>(a: &'l mut i32, b: &'l mut i32) -> BoxFuture<'l, Result<i32, FnError<String>>> {
     async move {
         let r = *a + *b;
         Ok(r)
@@ -91,7 +91,7 @@ pub fn add_3_arg_ref_async<'a>(
     a: &'a mut i32,
     b: &'a mut i32,
     c: &'a i32,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     async move {
         let r = *a + *b + c;
         Ok(r)
@@ -104,7 +104,7 @@ pub fn add_3_arg_ref__non_copy_async<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     async move {
         let r = a.len() + b.len() + c.len();
         Ok(r as i32)
