@@ -242,7 +242,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 /**
                 * It is only added to keep the compiler happy for non retryable functions
                 */
-                pub fn #retry_fn_ident #fn_gen (#function_mut_args)  #fn_return_type {
+                pub fn #retry_fn_ident #fn_gen (#[allow(unused)] #function_mut_args)  #fn_return_type {
                     panic!("Function not to be called");
                 }
             };

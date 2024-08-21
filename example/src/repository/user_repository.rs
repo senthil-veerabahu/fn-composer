@@ -10,7 +10,6 @@ use diesel::ExpressionMethods;
 
 use diesel::QueryDsl;
 use diesel::SelectableHelper;
-use diesel::associations::Identifiable;
 use diesel::insert_into;
 use diesel::prelude::Insertable;
 use diesel::result::Error;
@@ -35,7 +34,7 @@ use crate::schema::roles::columns as RoleTable;
 
 
 use crate::{ schema::users::dsl::*, schema::roles::dsl::*, schema::role_entities::dsl::*};
-use crate::fnutils::{convertToFnError, ErrorMapper, ErrorType, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_var_error};
+use crate::fnutils::{convert_to_fn_error, ErrorMapper, ErrorType, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_var_error};
 
 
 
@@ -65,7 +64,7 @@ impl<'a> UserRepository for RepositoryDB<'a>{
         .select((User::as_select(), RoleEntity::as_select(), Role::as_select()))
         .load(&mut self.connection).await;
         let var_name = || ErrorType::UserNotFound(userName.clone());
-        let result = userResult.map_err(|e| convertToFnError(ErrorMapper::new().add(Error::NotFound, var_name), e));
+        let result = userResult.map_err(|e| convert_to_fn_error(ErrorMapper::new().add(Error::NotFound, var_name), e));
         let user = result?;
         let valid = verify(pass, (&user[0]).0.password.as_ref()).map_err(map_to_unknown_bcrypt_error())?;
         if !valid || user.is_empty() {

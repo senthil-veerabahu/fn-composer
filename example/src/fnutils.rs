@@ -38,7 +38,7 @@ pub struct ErrorObject{
 
 pub struct HttpErrorObject{
     pub status_code:Option<StatusCode>,
-    error_object: ErrorObject, 
+    error_object: ErrorObject,
 }
 
 impl HttpErrorObject{   
@@ -333,7 +333,7 @@ impl<T, E> ToFnResult<T, E> for Result<T, E>
 }*/
 
 pub struct ErrorMapper<K, F> {
-    errorMap: Vec<(K, F)>,
+    error_map: Vec<(K, F)>,
 }
 
 pub fn map_result_not_found_error<'a>(error_type: &'a ErrorType)-> impl Fn(diesel::result::Error) -> FnError<ErrorType> + 'a{
@@ -398,8 +398,8 @@ pub fn map_to_unknown_system_time_error()-> fn(SystemTimeError) -> FnError<Error
     }
 }
 
-static Query_result_Error_Mapper:ErrorMapper<diesel::result::Error, fn(diesel::result::Error)->ErrorType> = ErrorMapper{
-    errorMap: vec![]
+static QUERY_RESULT_ERROR_MAPPER:ErrorMapper<diesel::result::Error, fn(diesel::result::Error) ->ErrorType> = ErrorMapper{
+    error_map: vec![]
 }; 
 impl<K, F> ErrorMapper<K, F>
 where
@@ -407,30 +407,30 @@ where
 {
     pub fn new() -> ErrorMapper<K, F> {
         ErrorMapper {
-            errorMap: Vec::new(),
+            error_map: Vec::new(),
         }
     }
 
     pub fn add(&mut self, k: K, f: F) -> &mut Self {
-        self.errorMap.push((k, f));
+        self.error_map.push((k, f));
         self
     }
 
-    fn getErrorType(&self, k: &K) -> Option<&(K, F)> {
-        self.errorMap
+    fn get_error_type(&self, k: &K) -> Option<&(K, F)> {
+        self.error_map
             .iter()
             .find(|item| discriminant(&item.0) == discriminant(k))
     }
 }
 
-pub fn convertToAppError<K, F>(e: &ErrorMapper<K, F>, err: K) -> AppError
+pub fn convert_to_app_error<K, F>(e: &ErrorMapper<K, F>, err: K) -> AppError
 where
     F: Fn() -> ErrorType,
     K: Display,
 {
-    let matchingErrorType = e.getErrorType(&err);
-    if matchingErrorType.is_some() {
-        let borrow_mut = matchingErrorType.unwrap();
+    let matching_error_type = e.get_error_type(&err);
+    if matching_error_type.is_some() {
+        let borrow_mut = matching_error_type.unwrap();
         let var_name = &borrow_mut.1;
         var_name().into()
     } else {
@@ -438,14 +438,14 @@ where
     }
 }
 
-pub fn convertToFnError<K, F>(e: &ErrorMapper<K, F>, err: K) -> FnError<ErrorType>
+pub fn convert_to_fn_error<K, F>(e: &ErrorMapper<K, F>, err: K) -> FnError<ErrorType>
     where
         F: Fn() -> ErrorType,
         K: Display,
 {
-    let matchingErrorType = e.getErrorType(&err);
-    if matchingErrorType.is_some() {
-        let borrow_mut = matchingErrorType.unwrap();
+    let matching_error_type = e.get_error_type(&err);
+    if matching_error_type.is_some() {
+        let borrow_mut = matching_error_type.unwrap();
         let var_name = &borrow_mut.1;
         var_name().into()
     } else {

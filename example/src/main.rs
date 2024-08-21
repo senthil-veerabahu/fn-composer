@@ -18,12 +18,12 @@ use function_compose::{compose, composeable, FnError};
 
 pub async fn create_app_state() ->AppState{
     let mut app_state:AppState = AppState{
-        connectionPool: AppDBConnectionPool{
-            connectionPool: None
+        connection_pool: AppDBConnectionPool{
+            connection_pool: None
         }
     };
-    app_state.initConnection().await;
-    println!("appstate connection pool {}", app_state.connectionPool.connectionPool.is_none());
+    app_state.init_connection().await;
+    println!("appstate connection pool {}", app_state.connection_pool.connection_pool.is_none());
     app_state
 }
 

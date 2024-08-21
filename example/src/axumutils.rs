@@ -14,12 +14,12 @@ use crate::utils::secutils::verify_token;
 
 #[derive(Clone)]
 pub struct AppDBConnectionPool{
-    pub connectionPool: Option<Pool<AsyncPgConnection>>
+    pub connection_pool: Option<Pool<AsyncPgConnection>>
 }
 
 #[derive(Clone)]
 pub struct AppState{
-    pub connectionPool: AppDBConnectionPool
+    pub connection_pool: AppDBConnectionPool
 }
 
 
@@ -79,36 +79,36 @@ impl From<FnError<ErrorType>> for AppErrorResponse<ErrorType>{
 }
 
 impl AppState {
-    pub async fn initConnection(&mut self){
-        let connectionPoolResult = createConnectionPool().await;
-        if connectionPoolResult.is_err() {
+    pub async fn init_connection(&mut self){
+        let connection_pool_result = createConnectionPool().await;
+        if connection_pool_result.is_err() {
             panic!("Failed to start app");
         }else {            
-            self.connectionPool  = AppDBConnectionPool {
-                connectionPool:Some(connectionPoolResult.ok().unwrap())
+            self.connection_pool = AppDBConnectionPool {
+                connection_pool:Some(connection_pool_result.ok().unwrap())
             };
         }
     }
 }
 
-pub async fn createAppState() ->AppState{
-    let mut appState:AppState = AppState{
-        connectionPool: AppDBConnectionPool{
-            connectionPool: None
+pub async fn create_app_state() ->AppState{
+    let mut app_state:AppState = AppState{
+        connection_pool: AppDBConnectionPool{
+            connection_pool: None
         }
     };
-    appState.initConnection().await;
-    println!("appstate connection pool {}", appState.connectionPool.connectionPool.is_none());
-    appState
+    app_state.init_connection().await;
+    println!("appstate connection pool {}", app_state.connection_pool.connection_pool.is_none());
+    app_state
 }
 
 pub struct DBConnectionHolder {
-    dbConnection: DBConnection
+    db_connection: DBConnection
 }
 
 impl DerefMut for DBConnectionHolder{
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.dbConnection
+        &mut self.db_connection
     }
 }
 
@@ -116,12 +116,12 @@ impl Deref for DBConnectionHolder{
     type Target = DBConnection;
 
     fn deref(&self) -> &Self::Target {
-        &self.dbConnection
+        &self.db_connection
     }
 }
 
 struct RequestUser{
-    userId: String,
+    user_id: String,
     email:String,
     role:String,
     is_email_verified: bool,
@@ -187,10 +187,10 @@ impl<S> FromRequestParts<S> for AuthUserData where AppState: FromRef<S>, S:Send+
     type Rejection = ErrorObject;
 
     async fn from_request_parts(req:  &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let authOption = req.headers.get(axum::http::header::AUTHORIZATION);
-        let r:Result<AuthUserData, ErrorObject> = match authOption{
-            Some(authHeaderValue) => {
-                let data = std::str::from_utf8(authHeaderValue.as_bytes()).map_err(map_to_unknown_utf_error()).map_err(map_to_error_object())?;
+        let auth_ption = req.headers.get(axum::http::header::AUTHORIZATION);
+        let r:Result<AuthUserData, ErrorObject> = match auth_ption {
+            Some(auth_header_value) => {
+                let data = std::str::from_utf8(auth_header_value.as_bytes()).map_err(map_to_unknown_utf_error()).map_err(map_to_error_object())?;
                 let mut tokens = data.split_whitespace();
                 
                 let has_bearer_string: Option<&str> = tokens.next();
@@ -198,12 +198,12 @@ impl<S> FromRequestParts<S> for AuthUserData where AppState: FromRef<S>, S:Send+
                     Some(_) => {
                         let has_bearer_token: Option<&str> = tokens.next();
                         match has_bearer_token{
-                            Some(jwtToken) => {
+                            Some(jwt_token) => {
                                 let jwt_signing_key = env::var("JWT_SIGNING_KEY").map_err(map_to_unknown_var_error()).map_err(map_to_error_object())?;
-                                let claims = verify_token(jwtToken, jwt_signing_key).map_err(map_to_error_object())?;
+                                let claims = verify_token(jwt_token, jwt_signing_key).map_err(map_to_error_object())?;
                                 Ok(AuthUserData{
                                     auth_user: Some(RequestUser{
-                                        userId: claims["userId"].clone(),
+                                        user_id: claims["userId"].clone(),
                                         email:claims["email"].clone(),
                                         role:claims["role"].clone(),
                                         is_email_verified: claims["isEmailVerfied"].parse().unwrap(),
@@ -216,7 +216,7 @@ impl<S> FromRequestParts<S> for AuthUserData where AppState: FromRef<S>, S:Send+
                     }
                     None => Err(ErrorType::AuthError("User Not found in request".to_owned()).to_error_object())
                 }
-            },
+            }
             None => Err(ErrorType::AuthError("User Not found in request".to_owned()).to_error_object())
         };
         let r = r?;
@@ -232,9 +232,9 @@ impl<S> FromRequestParts<S> for DBConnectionHolder where AppState: FromRef<S>, S
     async fn from_request_parts(req:  &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = req.extract_with_state::<AppState, _>(state);
         //let x = state;
-        let connection_pool = state.await?.connectionPool.connectionPool.as_ref().unwrap().clone();
+        let connection_pool = state.await?.connection_pool.connection_pool.as_ref().unwrap().clone();
         let r:DBConnection  = DBConnection::new(connection_pool);        
-        Ok(DBConnectionHolder { dbConnection: r })
+        Ok(DBConnectionHolder { db_connection: r })
         //Ok(Arc::new(r))
     }
 }
