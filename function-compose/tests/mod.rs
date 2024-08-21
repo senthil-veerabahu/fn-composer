@@ -22,7 +22,7 @@ fn do_work(a:i32, test:impl TestTrait)->Result<i32, FnError<String>>{
 }
 
 #[composeable()]
-fn do_work_with_box(a:i32, test:Box<dyn TestTrait> )->Result<i32, FnError<String>>{
+fn do_work_with_box(_a:i32, _test:Box<dyn TestTrait> )->Result<i32, FnError<String>>{
     Ok(0)
 }
 
@@ -110,39 +110,6 @@ pub fn add_vec_size_ref__non_copy_sync<'a>(
     let r = a.len() + b.len() + c.len();
     Ok(r as i32)
 }
-
-/*use function_compose::*;
-pub fn fn_composer__lifted_fn_add_vec_size_ref__non_copy_async<'a, T1, T2, T3, T4, F: Fn(T1, T2, T3) -> BoxFuture<'a, Result<T4, FnError>> + 'a + Send + Sync>(f: F) -> BoxedAsyncFn3<'a, T1, T2, T3, T4, > { lift_async_fn3(f) }
-pub fn fn_composer__is_retryable_add_vec_size_ref__non_copy_async() -> bool { true }
-pub fn fn_composer__is_async_add_vec_size_ref__non_copy_async() -> bool { true }
-
-pub fn fn_composer__retry_add_vec_size_ref__non_copy_async<'a>(
-    mut a: &'a mut Vec<String>,
-    mut b: &'a mut Vec<String>,
-    mut c: &'a Vec<String>,
-) -> BoxFuture<'a, Result<i32, FnError<String>>> {
-    use function_compose::*;
-    use retry::*;
-    use tokio_retry::Retry   as AsyncRetry;
-    use tokio::sync::Mutex;
-    use std::ops::{Deref, DerefMut};
-    async {
-        let mut a = Mutex::new(a);
-        let mut b = Mutex::new(b);
-        let result = AsyncRetry::spawn(Fixed::from_millis(100).take(2), || async {
-            let mut a = a.lock().await;
-            let mut b = b.lock().await;
-            ;
-            let r = add_vec_size_ref__non_copy_async(a.deref_mut(), b.deref_mut(), c);
-            r.await
-        });
-        let result = match result.await {
-            Ok(result) => Ok(result),
-            Err(e) => Err(e)
-        };
-        result
-    }.boxed()
-}*/
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
 pub fn add_vec_size_ref__non_copy_async<'a>(

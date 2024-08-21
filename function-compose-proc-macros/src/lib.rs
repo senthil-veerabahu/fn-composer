@@ -82,10 +82,10 @@ impl<'a> ToTokens for FunctionArgs<'a> {
 impl<'a> ToTokens for FunctionMutArgs<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.args.iter().for_each(|arg| {
-            let tokeStream = quote! {
+            let token_stream = quote! {
                         mut #arg,
             };
-            tokens.append_all(tokeStream.into_iter());
+            tokens.append_all(token_stream.into_iter());
         });
     }
 }
@@ -126,73 +126,73 @@ fn generate_ident_with_prefix(ident: &str) -> String{
 pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
     
 
-    let tokenStreamClone = item.clone();
-    let item_fn: ItemFn = syn::parse_macro_input!(tokenStreamClone);
+    let token_stream_clone = item.clone();
+    let item_fn: ItemFn = syn::parse_macro_input!(token_stream_clone);
 
     let fn_gen = item_fn.sig.generics;
-    let mut asyncFn = item_fn.sig.asyncness.is_some();
-    let inputArgs = item_fn.sig.inputs;
-    let arg_tokens: Vec<_> = inputArgs.iter().collect();
-    let mut_arg_tokens: Vec<_> = inputArgs.iter().collect();
-    let argLength = inputArgs.len();
-    let fnIdent = &item_fn.sig.ident;
-    let fnName = item_fn.sig.ident.to_string();
-    let fnReturnType = &item_fn.sig.output;
+    let mut async_fn = item_fn.sig.asyncness.is_some();
+    let input_args = item_fn.sig.inputs;
+    let arg_tokens: Vec<_> = input_args.iter().collect();
+    let mut_arg_tokens: Vec<_> = input_args.iter().collect();
+    let arg_length = input_args.len();
+    let fn_ident = &item_fn.sig.ident;
+    let fn_name = item_fn.sig.ident.to_string();
+    let fn_return_type = &item_fn.sig.output;
 
-    let returnTypeWithoutToken = match fnReturnType {
+    let return_type_without_token = match fn_return_type {
         ReturnType::Default => None,
         ReturnType::Type(_, returnType) => Some(returnType),
     };
 
     let retry = syn::parse_macro_input!(attr as OptionalRetry);
 
-    if !asyncFn {
-        match fnReturnType {
+    if !async_fn {
+        match fn_return_type {
             syn::ReturnType::Default => {}
             syn::ReturnType::Type(_, t) => {
                 let x = t.deref();
-                asyncFn = x.to_token_stream().to_string().starts_with("BoxFuture");
+                async_fn = x.to_token_stream().to_string().starts_with("BoxFuture");
             }
         }
     }
-    let lifted_fn_name = "lifted_fn_".to_owned() + &fnName;
+    let lifted_fn_name = "lifted_fn_".to_owned() + &fn_name;
     let prefixed_lifted_fn_name = &generate_ident_with_prefix(&lifted_fn_name);
     //let lift_retry_fn_name = &generate_ident_with_prefix(&("retry_".to_owned() + &lifted_fn_name));
-    let liftFnIdent = syn::Ident::new(prefixed_lifted_fn_name, proc_macro2::Span::call_site());
-    let is_retry_fn_name = &generate_ident_with_prefix(&("is_retryable_".to_owned() + &fnName));
+    let lift_fn_ident = syn::Ident::new(prefixed_lifted_fn_name, proc_macro2::Span::call_site());
+    let is_retry_fn_name = &generate_ident_with_prefix(&("is_retryable_".to_owned() + &fn_name));
     let is_retry_fn_ident = syn::Ident::new(&is_retry_fn_name, proc_macro2::Span::call_site());
-    let retryFnIdent = syn::Ident::new(
-        &generate_ident_with_prefix(&("retry_".to_owned() + &fnName)),
+    let retry_fn_ident = syn::Ident::new(
+        &generate_ident_with_prefix(&("retry_".to_owned() + &fn_name)),
         proc_macro2::Span::call_site(),
     );
 
-    let async_fn_name = &generate_ident_with_prefix(&("is_async_".to_owned() + fnName.deref()));
-    let asyncFnIdent = syn::Ident::new(
+    let async_fn_name = &generate_ident_with_prefix(&("is_async_".to_owned() + fn_name.deref()));
+    let async_fn_ident = syn::Ident::new(
         async_fn_name,
         proc_macro2::Span::call_site(),
     );
     let (
-        _returnType,
-        _underlyingLiftFnName,
-        funGen,
-        returnTypeIdent,
-        retGen,
-        underlyingLiftFnNameIdent,
+        _return_type,
+        _underlying_lift_fn_name,
+        fun_gen,
+        return_type_ident,
+        ret_gen,
+        underlying_lift_fn_name_ident,
     ) = /*if (asyncFn)*/ {
-        let returnType = if asyncFn {
-            "BoxedAsyncFn".to_owned() + argLength.to_string().as_str()
+        let return_type = if async_fn {
+            "BoxedAsyncFn".to_owned() + arg_length.to_string().as_str()
         } else {
-            "BoxedFn".to_owned() + argLength.to_string().as_str()
+            "BoxedFn".to_owned() + arg_length.to_string().as_str()
         };
-        let underlyingLiftFnName = if asyncFn {
-            "lift_async_fn".to_owned() + argLength.to_string().as_str()
+        let underlying_lift_fn_name = if async_fn {
+            "lift_async_fn".to_owned() + arg_length.to_string().as_str()
         } else {
-            "lift_sync_fn".to_owned() + argLength.to_string().as_str()
+            "lift_sync_fn".to_owned() + arg_length.to_string().as_str()
         };
-        let gen_type_params = generate_generics_parameters((argLength + 1) as u8);
-        let fun_arg_params = generate_generics_parameters((argLength) as u8);
-        let return_type_param = generate_return_type_param((argLength + 1) as u8);
-        let funGen = if asyncFn {
+        let gen_type_params = generate_generics_parameters((arg_length + 1) as u8);
+        let fun_arg_params = generate_generics_parameters((arg_length) as u8);
+        let return_type_param = generate_return_type_param((arg_length + 1) as u8);
+        let fun_gen = if async_fn {
             let gen = format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, FnError<E1>>> + 'a + Send +Sync>", );            
             syn::parse_str::<syn::Generics>(
                 gen.as_str()
@@ -205,18 +205,18 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             ).ok().unwrap()
         };
 
-        let returnTypeIdent = syn::Ident::new(returnType.as_str(), proc_macro2::Span::call_site());
-        let underlyingLiftFnNameIdent =
-            syn::Ident::new(underlyingLiftFnName.as_str(), proc_macro2::Span::call_site());
-        let retGen = syn::parse_str::<syn::Generics>(format!("<'a,{gen_type_params} E1>").as_str()).ok().unwrap();
+        let return_type_ident = syn::Ident::new(return_type.as_str(), proc_macro2::Span::call_site());
+        let underlying_lift_fn_name_ident =
+            syn::Ident::new(underlying_lift_fn_name.as_str(), proc_macro2::Span::call_site());
+        let ret_gen = syn::parse_str::<syn::Generics>(format!("<'a,{gen_type_params} E1>").as_str()).ok().unwrap();
 
         (
-            returnType,
-            underlyingLiftFnName,
-            funGen,
-            returnTypeIdent,
-            retGen,
-            underlyingLiftFnNameIdent,
+            return_type,
+            underlying_lift_fn_name,
+            fun_gen,
+            return_type_ident,
+            ret_gen,
+            underlying_lift_fn_name_ident,
         )
     };
 
@@ -228,12 +228,12 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             let tokens: proc_macro2::TokenStream = quote! {
                 use function_compose::*;
 
-                pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
-                    #underlyingLiftFnNameIdent(f)
+                pub fn #lift_fn_ident #fun_gen(f: F)  -> #return_type_ident #ret_gen{
+                    #underlying_lift_fn_name_ident(f)
                 }
 
-                pub fn #asyncFnIdent ()  -> bool{
-                    #asyncFn
+                pub fn #async_fn_ident ()  -> bool{
+                    #async_fn
                 }
 
                  pub fn #is_retry_fn_ident ()  -> bool{
@@ -243,14 +243,14 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 /**
                 * It is only added to keep the compiler happy for non retryable functions
                 */
-                pub fn #retryFnIdent #fn_gen (#function_mut_args)  #fnReturnType {
+                pub fn #retry_fn_ident #fn_gen (#function_mut_args)  #fn_return_type {
                     panic!("Function not to be called");
                 }
             };
-            let mut toeknStream: proc_macro::TokenStream = tokens.into();
-            toeknStream.extend(item.into_iter());
-            //println!("{}", toeknStream.to_string());
-            toeknStream
+            let mut token_stream: proc_macro::TokenStream = tokens.into();
+            token_stream.extend(item.into_iter());
+            //println!("{}", toekn_stream.to_string());
+            token_stream
         }
         SomeRetry(strategy) => {
             let function_args = FunctionArgs { args: arg_tokens };
@@ -268,10 +268,10 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             let deref_mut_tokens: Vec<_> = convert_to_deref_tokens(&function_args);
 
             let strategy_expr = strategy.strategy;
-            let retry_tokens: proc_macro2::TokenStream = if asyncFn {
+            let retry_tokens: proc_macro2::TokenStream = if async_fn {
                 quote! {
 
-                    pub fn #retryFnIdent #fn_gen(#function_mut_args)  #fnReturnType {
+                    pub fn #retry_fn_ident #fn_gen(#function_mut_args)  #fn_return_type {
                         use function_compose::*;
                         use retry::*;
                         use tokio_retry::Retry as AsyncRetry;
@@ -281,7 +281,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                             #( #mutex_tokens )*
                             let result = AsyncRetry::spawn(#strategy_expr, || async{
                                 #( #mutex_unlock_tokens )*;
-                                let r = #fnIdent(#( #deref_mut_tokens )*);
+                                let r = #fn_ident(#( #deref_mut_tokens )*);
                                 //OperationResult::from()
                                 r.await
                             });
@@ -297,12 +297,12 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             } else {
                 quote! {
 
-                    pub fn #retryFnIdent #fn_gen (#function_mut_args)  #fnReturnType {
+                    pub fn #retry_fn_ident #fn_gen (#function_mut_args)  #fn_return_type {
                         use function_compose::*;
                         use retry::*;
 
                         let result = retry(#strategy_expr, ||{
-                            let r:#returnTypeWithoutToken = #fnIdent(#function_args).into();
+                            let r:#return_type_without_token = #fn_ident(#function_args).into();
                             r
                         });
                         match result{
@@ -320,13 +320,13 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             let tokens: proc_macro2::TokenStream = quote! {
 
                 use function_compose::*;
-                pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
+                pub fn #lift_fn_ident #fun_gen(f: F)  -> #return_type_ident #ret_gen{
                     //#lift_retry_fn_ident(#retryFnIdent)
-                    #underlyingLiftFnNameIdent(f)
+                    #underlying_lift_fn_name_ident(f)
                 }
 
-                /*pub fn #lift_retry_fn_ident #funGen(f: F)  -> #returnTypeIdent #retGen{
-                    #underlyingLiftFnNameIdent(#retryFnIdent)
+                /*pub fn #lift_retry_fn_ident #fun_gen(f: F)  -> #return_type_ident #ret_gen{
+                    #underlying_lift_fn_name_ident(#retryFnIdent)
                 }*/
 
                  pub fn #is_retry_fn_ident ()  -> bool{
@@ -334,18 +334,18 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
 
 
-                pub fn #asyncFnIdent ()  -> bool{
-                    #asyncFn
+                pub fn #async_fn_ident ()  -> bool{
+                    #async_fn
                 }
             };
             let retry_token_stream: TokenStream = retry_tokens.into();
 
-            let mut toeknStream: proc_macro::TokenStream = tokens.into();
+            let mut token_stream: proc_macro::TokenStream = tokens.into();
 
-            toeknStream.extend(item.into_iter());
-            toeknStream.extend(retry_token_stream.into_iter());
-            /*println!("{}", toeknStream.to_string());*/
-            toeknStream
+            token_stream.extend(item.into_iter());
+            token_stream.extend(retry_token_stream.into_iter());
+            /*println!("{}", toekn_stream.to_string());*/
+            token_stream
         }
     }
 }
