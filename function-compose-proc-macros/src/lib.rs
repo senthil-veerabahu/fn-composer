@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
-use std::any::Any;
+
 use std::fmt::Formatter;
-use std::{borrow::Borrow, fmt::Display, ops::Deref};
+use std::{fmt::Display, ops::Deref};
 
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::ParseStream;
@@ -27,7 +27,7 @@ fn generate_generics_parameters(count: u8) -> String {
 }
 
 #[proc_macro_attribute]
-pub fn retry(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn retry(_attr: TokenStream, _item: TokenStream) -> TokenStream {
     panic!()
 }
 
@@ -124,7 +124,7 @@ fn generate_ident_with_prefix(ident: &str) -> String{
 
 #[proc_macro_attribute]
 pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
-    use syn::parse::Parser;
+    
 
     let tokenStreamClone = item.clone();
     let item_fn: ItemFn = syn::parse_macro_input!(tokenStreamClone);
@@ -146,7 +146,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let retry = syn::parse_macro_input!(attr as OptionalRetry);
 
-    if (!asyncFn) {
+    if !asyncFn {
         match fnReturnType {
             syn::ReturnType::Default => {}
             syn::ReturnType::Type(_, t) => {
@@ -155,7 +155,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
     }
-    let lifted_fn_name = ("lifted_fn_".to_owned() + &fnName);
+    let lifted_fn_name = "lifted_fn_".to_owned() + &fnName;
     let prefixed_lifted_fn_name = &generate_ident_with_prefix(&lifted_fn_name);
     //let lift_retry_fn_name = &generate_ident_with_prefix(&("retry_".to_owned() + &lifted_fn_name));
     let liftFnIdent = syn::Ident::new(prefixed_lifted_fn_name, proc_macro2::Span::call_site());
@@ -172,8 +172,8 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
         proc_macro2::Span::call_site(),
     );
     let (
-        returnType,
-        underlyingLiftFnName,
+        _returnType,
+        _underlyingLiftFnName,
         funGen,
         returnTypeIdent,
         retGen,
@@ -184,7 +184,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
         } else {
             "BoxedFn".to_owned() + argLength.to_string().as_str()
         };
-        let underlyingLiftFnName = if (asyncFn) {
+        let underlyingLiftFnName = if asyncFn {
             "lift_async_fn".to_owned() + argLength.to_string().as_str()
         } else {
             "lift_sync_fn".to_owned() + argLength.to_string().as_str()
@@ -192,7 +192,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
         let gen_type_params = generate_generics_parameters((argLength + 1) as u8);
         let fun_arg_params = generate_generics_parameters((argLength) as u8);
         let return_type_param = generate_return_type_param((argLength + 1) as u8);
-        let funGen = if (asyncFn) {
+        let funGen = if asyncFn {
             let gen = format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, FnError<E1>>> + 'a + Send +Sync>", );            
             syn::parse_str::<syn::Generics>(
                 gen.as_str()
@@ -225,7 +225,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             let function_mut_args = FunctionMutArgs {
                 args: mut_arg_tokens,
             };
-            let mut tokens: proc_macro2::TokenStream = quote! {
+            let tokens: proc_macro2::TokenStream = quote! {
                 use function_compose::*;
 
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
@@ -268,7 +268,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             let deref_mut_tokens: Vec<_> = convert_to_deref_tokens(&function_args);
 
             let strategy_expr = strategy.strategy;
-            let retry_tokens: proc_macro2::TokenStream = if (asyncFn) {
+            let retry_tokens: proc_macro2::TokenStream = if asyncFn {
                 quote! {
 
                     pub fn #retryFnIdent #fn_gen(#function_mut_args)  #fnReturnType {
@@ -317,7 +317,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
             println!("{}", retry_tokens);
             println!("#############################");*/
 
-            let mut tokens: proc_macro2::TokenStream = quote! {
+            let tokens: proc_macro2::TokenStream = quote! {
 
                 use function_compose::*;
                 pub fn #liftFnIdent #funGen(f: F)  -> #returnTypeIdent #retGen{
@@ -338,7 +338,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                     #asyncFn
                 }
             };
-            let mut retry_token_stream: TokenStream = retry_tokens.into();
+            let retry_token_stream: TokenStream = retry_tokens.into();
 
             let mut toeknStream: proc_macro::TokenStream = tokens.into();
 
@@ -377,7 +377,7 @@ fn convert_to_create_mutex_tokens(mutable_args: &Vec<&&FnArg>) -> Vec<proc_macro
     mutable_args
         .iter()
         .map(|i| match i {
-            FnArg::Receiver(pat_type) => {
+            FnArg::Receiver(_pat_type) => {
                 panic!();
             }
             FnArg::Typed(pat_type) => {
@@ -394,7 +394,7 @@ fn convert_to_mutex_unlock_tokens(mutable_args: Vec<&&FnArg>) -> Vec<proc_macro2
     mutable_args
         .iter()
         .map(|i| match i {
-            FnArg::Receiver(pat_type) => {
+            FnArg::Receiver(_pat_type) => {
                 panic!();
             }
             FnArg::Typed(pat_type) => {
@@ -414,7 +414,7 @@ fn convert_to_deref_tokens(function_args: &FunctionArgs) -> Vec<proc_macro2::Tok
         .iter()
         .map(|i| {
             match i {
-                FnArg::Receiver(pat_type) => {
+                FnArg::Receiver(_pat_type) => {
                     return quote! {};
                 }
                 FnArg::Typed(pat_type) => {
@@ -422,7 +422,7 @@ fn convert_to_deref_tokens(function_args: &FunctionArgs) -> Vec<proc_macro2::Tok
                     let ty = pat_type.ty.deref();
                     match ty {
                         Type::Reference(ty_ref) => {
-                            if (ty_ref.mutability.is_some()) {
+                            if ty_ref.mutability.is_some() {
                                 return quote! {
                                     #pat.deref_mut(),
                                 };
