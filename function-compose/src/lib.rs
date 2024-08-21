@@ -73,10 +73,6 @@ trace_macros!(true);*/
 //!```
 
 
-use std::{error::Error};
-
-
-
 use futures::{future::BoxFuture, FutureExt};
 //use paste::paste;
 
@@ -131,9 +127,9 @@ macro_rules! composer_generator {
 
                 fn then(self, f: BoxedFn1<'a, $return_type1, $return_type2, $error_type2>) -> BoxedFn1<'a, $arg1, $return_type2, $error_type2> {
                     let r1 = move |x: $arg1| {
-                        let gResult = self(x);
-                        match gResult{
-                                Ok(innerResult) => f(innerResult),
+                        let g_result = self(x);
+                        match g_result{
+                                Ok(inner_result) => f(inner_result),
                                 Err(error) =>   Err(to_fn_error(error)),
                             }
                     };
@@ -148,9 +144,9 @@ macro_rules! composer_generator {
                 fn then(self, f: BoxedAsyncFn1<'a, $return_type1, $return_type2, $error_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2, $error_type2> {
                     let r1 =  |x: $arg1| {
                         async move{
-                            let gResult = self(x);
-                            match gResult{
-                                Ok(innerResult) => f(innerResult).await,
+                            let g_result = self(x);
+                            match g_result{
+                                Ok(inner_result) => f(inner_result).await,
                                 Err(error) =>   Err(to_fn_error(error)),
                             }
                             //f(b).await
@@ -168,9 +164,9 @@ macro_rules! composer_generator {
                 fn then(self, f: BoxedFn1<'a, $return_type1, $return_type2, $error_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2, $error_type2> {
                     let r1 = |a: $arg1| {
                         async move {
-                            let gResult = self(a).await;
-                            match gResult{
-                                Ok(innerResult) => f(innerResult),
+                            let g_result = self(a).await;
+                            match g_result{
+                                Ok(inner_result) => f(inner_result),
                                 Err(error) =>   Err(to_fn_error(error)),
                             }
                         }.boxed()
@@ -188,9 +184,9 @@ macro_rules! composer_generator {
                 fn then(self, f: BoxedAsyncFn1<'a, $return_type1, $return_type2, $error_type2>) -> BoxedAsyncFn1<'a, $arg1, $return_type2, $error_type2> {
                     let r1 = |a: $arg1| {
                         async move {
-                            let gResult = self(a).await;
-                            match gResult{
-                                Ok(innerResult) => f(innerResult).await,
+                            let g_result = self(a).await;
+                            match g_result{
+                                Ok(inner_result) => f(inner_result).await,
                                 Err(error) =>   Err(to_fn_error(error)),
                             }
                         }.boxed()

@@ -5,7 +5,6 @@ use std::{fmt::Display, ops::Deref};
 
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::ParseStream;
-use syn::token::Token;
 use syn::{parse::Parse, Expr, FnArg, ItemFn, ReturnType, Token, Type};
 
 use crate::OptionalRetry::SomeRetry;
@@ -105,8 +104,8 @@ impl Parse for OptionalRetry {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
         if lookahead.peek(keyword::retry) {
-            input.parse::<keyword::retry>();
-            input.parse::<Token![=]>();
+            let _ = input.parse::<keyword::retry>();
+            let _ = input.parse::<Token![=]>();
             let expr: Expr = input.parse()?;
             println!("{}", expr.to_token_stream());
             Ok(OptionalRetry::SomeRetry(Retry { strategy: expr }))
@@ -141,7 +140,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let return_type_without_token = match fn_return_type {
         ReturnType::Default => None,
-        ReturnType::Type(_, returnType) => Some(returnType),
+        ReturnType::Type(_, return_type) => Some(return_type),
     };
 
     let retry = syn::parse_macro_input!(attr as OptionalRetry);
