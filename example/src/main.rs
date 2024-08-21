@@ -1,4 +1,4 @@
-use axum::{Json, RequestPartsExt, Router};
+use axum::{Json, Router};
 use axum::routing::{get, post};
 use axum_macros::debug_handler;
 use diesel_async::AsyncPgConnection;
