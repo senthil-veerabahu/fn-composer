@@ -8,11 +8,11 @@ use crate::fnutils::ErrorType;
 
 
 #[composeable()]
-pub fn find_product_by_ids(ids:Vec<Uuid>, dbConn: &mut DBConnection)->BoxFuture<Result<Vec<ProductData>, FnError<ErrorType>>>{
+pub fn find_product_by_ids(ids:Vec<Uuid>, db_conn: &mut DBConnection) ->BoxFuture<Result<Vec<ProductData>, FnError<ErrorType>>>{
     async{
-        let current_connection = dbConn.currentConnection().await?;
-        let mut productRepository = RepositoryDB::from(current_connection);
-        let result = productRepository.get_products_by_ids(ids).await?;
+        let current_connection = db_conn.current_connection().await?;
+        let mut product_repository = RepositoryDB::from(current_connection);
+        let result = product_repository.get_products_by_ids(ids).await?;
         Ok(result)
     }.boxed()
 }
@@ -24,7 +24,7 @@ pub struct ProductDTO{
     name: String,
     generic: String,
     variant: String,
-    imgUrl: String
+    img_url: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,13 +39,13 @@ pub struct ProductFilterDTO{
     name: String,
     generic: String,
     variant: String,    
-    categoryName: String,
+    category_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductFilterListDTO{
-    productFilterDtoList: Vec<ProductFilterDTO>
+    product_filter_dto_list: Vec<ProductFilterDTO>
 }
 
 #[composeable()]
@@ -57,7 +57,7 @@ pub  fn pack_product_data(product_list:Vec<ProductData>) -> Result<ProductListDT
             name: w.0.product_name.to_string(),
             generic: w.0.family.unwrap_or_default(),
             variant:w.0.variant.to_string(),
-            imgUrl: w.1.image_one.unwrap(),
+            img_url: w.1.image_one.unwrap(),
         }
     }).collect();
 
@@ -75,11 +75,11 @@ pub  fn pack_product_category_data(product_list:Vec<ProductCategoryData>) -> Res
             name: w.0.product_name.to_string(),
             generic: w.0.family.unwrap_or_default(),
             variant:w.0.variant.to_string(),
-            categoryName: w.1.catogery_name,
+            category_name: w.1.catogery_name,
         }
     }).collect();
 
     Ok(ProductFilterListDTO{
-        productFilterDtoList:products
+        product_filter_dto_list:products
     })
 }

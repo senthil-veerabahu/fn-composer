@@ -259,7 +259,7 @@ impl From<diesel::result::Error> for ErrorType{
             diesel::result::Error::NotFound => {
                 ErrorType::EntityNotFound(error.to_string())
             },
-            _E_ => {ErrorType::DBError(error.to_string())}
+            _e => {ErrorType::DBError(error.to_string())}
             
             
         }
@@ -398,9 +398,6 @@ pub fn map_to_unknown_system_time_error()-> fn(SystemTimeError) -> FnError<Error
     }
 }
 
-static QUERY_RESULT_ERROR_MAPPER:ErrorMapper<diesel::result::Error, fn(diesel::result::Error) ->ErrorType> = ErrorMapper{
-    error_map: vec![]
-}; 
 impl<K, F> ErrorMapper<K, F>
 where
     F: FnOnce() -> ErrorType,

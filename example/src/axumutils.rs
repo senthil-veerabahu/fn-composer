@@ -7,7 +7,7 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use function_compose::FnError;
 
 use crate::fnutils::*;
-use crate::{db::{createConnectionPool, DBConnection}};
+use crate::{db::{create_connection_pool, DBConnection}};
 use crate::fnutils::ErrorType::EntityNotFound;
 use crate::utils::secutils::verify_token;
 
@@ -80,7 +80,7 @@ impl From<FnError<ErrorType>> for AppErrorResponse<ErrorType>{
 
 impl AppState {
     pub async fn init_connection(&mut self){
-        let connection_pool_result = createConnectionPool().await;
+        let connection_pool_result = create_connection_pool().await;
         if connection_pool_result.is_err() {
             panic!("Failed to start app");
         }else {            

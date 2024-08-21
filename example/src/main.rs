@@ -66,7 +66,7 @@ async fn main() {
 #[composeable()]
 pub fn create_mobile_user(create_user_request:CreateUserRequest,_conn: &mut DBConnection)->BoxFuture<Result<User, FnError<ErrorType>>>{
     async{
-        let value: &mut AsyncPgConnection = _conn.currentConnection().await?;
+        let value: &mut AsyncPgConnection = _conn.current_connection().await?;
         let mut user_repository = RepositoryDB::from(value);
         let user = user_repository.create_mobile_user(NewUser::from(create_user_request)).await?;
         Ok(user)

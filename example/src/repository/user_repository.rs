@@ -43,7 +43,7 @@ sql_function!(fn lower(x: Text) -> Text);
 
 #[async_trait]
 pub trait UserRepository/* :CrudRepository<User,i64> */{
-     async fn auth(&mut self, userName: String, pass: String)->Result<AuthData, FnError<ErrorType>>;
+     async fn auth(&mut self, user_name: String, pass: String) ->Result<AuthData, FnError<ErrorType>>;
 
      async fn create_mobile_user(&mut self, user:NewUser)->Result<User, FnError<ErrorType>>;
 
@@ -56,19 +56,19 @@ pub type AuthData = (User, RoleEntity, Role);
 #[async_trait]
 impl<'a> UserRepository for RepositoryDB<'a>{    
 
-    async fn auth(&mut self, userName: String, pass: String) -> Result<AuthData, FnError<ErrorType>> {
-        println!("request user name is {}", userName);
-        let userResult: Result<Vec<AuthData>, Error> = users.filter(email.eq(userName.to_lowercase()))
+    async fn auth(&mut self, user_name: String, pass: String) -> Result<AuthData, FnError<ErrorType>> {
+        println!("request user name is {}", user_name);
+        let user_result: Result<Vec<AuthData>, Error> = users.filter(email.eq(user_name.to_lowercase()))
         .inner_join(role_entities::table.on(user_id.eq(logger_id)))
         .inner_join(roles::table.on(role_entities::role_id.eq(roles::id)))
         .select((User::as_select(), RoleEntity::as_select(), Role::as_select()))
         .load(&mut self.connection).await;
-        let var_name = || ErrorType::UserNotFound(userName.clone());
-        let result = userResult.map_err(|e| convert_to_fn_error(ErrorMapper::new().add(Error::NotFound, var_name), e));
+        let var_name = || ErrorType::UserNotFound(user_name.clone());
+        let result = user_result.map_err(|e| convert_to_fn_error(ErrorMapper::new().add(Error::NotFound, var_name), e));
         let user = result?;
         let valid = verify(pass, (&user[0]).0.password.as_ref()).map_err(map_to_unknown_bcrypt_error())?;
         if !valid || user.is_empty() {
-            return Err(ErrorType::AuthError(userName).into());
+            return Err(ErrorType::AuthError(user_name).into());
         }
         Ok(user.into_iter().next().unwrap())
     }
@@ -98,12 +98,12 @@ impl<'a> UserRepository for RepositoryDB<'a>{
                     entity_name:None,
             };
 
-            let role_entityCount = insert_into(role_entities)
+            let role_entity_count = insert_into(role_entities)
                 .values(new_role_entity)
                 .execute(&mut self.connection).await.map_err(map_result_not_found_error(&ErrorType::RoleNotFound(role.id.to_string())))?;
             
-            assert_eq!(1, role_entityCount);
-            println!("Insert data into role entities {}", role_entityCount);
+            assert_eq!(1, role_entity_count);
+            println!("Insert data into role entities {}", role_entity_count);
             Ok(user)
         }
     }

@@ -18,7 +18,7 @@ use crate::fnutils::{ErrorObject, ErrorType, map_to_error_object, map_to_unknown
 #[composeable()]
 pub  fn authenticate(_authRequest: AuthRequest,_conn: &mut DBConnection) ->BoxFuture<Result<AuthData , FnError<ErrorType>>>{
     async{
-        let value: &mut AsyncPgConnection = _conn.currentConnection().await?;
+        let value: &mut AsyncPgConnection = _conn.current_connection().await?;
         let mut userRepository = RepositoryDB::from(value);
         let authData:AuthData = userRepository
                 .auth(String::from(_authRequest.user), String::from(_authRequest.pass)).await?;
@@ -49,24 +49,24 @@ pub  fn generate_token<'a>(user_data: AuthData) ->BoxFuture<'a, Result<(User,Str
 #[derive(Serialize, Debug)]
 pub struct AuthResponse{
     token: String,
-    emailVerified:        bool,
+    email_verified:        bool,
     email:                String,
     mobile:               String,
-    mobileVerifiedStatus: bool,
-    isActive:             bool,
-    locationIdentified:   bool,
+    mobile_verified_status: bool,
+    is_active:             bool,
+    location_identified:   bool,
 }
 
 #[composeable()]
-pub fn  pack_auth_result(userData: (User, String))-> Result<AuthResponse, FnError<ErrorType>>{
+pub fn  pack_auth_result(user_data: (User, String)) -> Result<AuthResponse, FnError<ErrorType>>{
     Ok(AuthResponse{
-        token: userData.1,
-        emailVerified: userData.0.isemail_verfied.is_some_and(|e|e),
-        email: userData.0.email,
-        mobile: userData.0.phone_number.unwrap_or_default(),
-        mobileVerifiedStatus: userData.0.is_phone_verfied.is_some_and(|e|e),
-        isActive: userData.0.is_active.is_some_and(|e|e),
-        locationIdentified:false,
+        token: user_data.1,
+        email_verified: user_data.0.isemail_verfied.is_some_and(|e|e),
+        email: user_data.0.email,
+        mobile: user_data.0.phone_number.unwrap_or_default(),
+        mobile_verified_status: user_data.0.is_phone_verfied.is_some_and(|e|e),
+        is_active: user_data.0.is_active.is_some_and(|e|e),
+        location_identified:false,
     })
 }
 
@@ -84,8 +84,8 @@ impl From<CreateUserRequest> for NewUser{
 } 
 
 #[debug_handler(state=AppState)]
-pub async  fn create_mobile_user_handler(mut dbConn1: DBConnectionHolder, Json(payload): Json<CreateUserRequest>)->Result<Json<User>, ErrorObject>{
-    let user = compose!(create_mobile_user.provide(&mut dbConn1) -> with_args(payload)).await.map_err(map_to_error_object())?;
+pub async  fn create_mobile_user_handler(mut db_conn1: DBConnectionHolder, Json(payload): Json<CreateUserRequest>) ->Result<Json<User>, ErrorObject>{
+    let user = compose!(create_mobile_user.provide(&mut db_conn1) -> with_args(payload)).await.map_err(map_to_error_object())?;
     //.await?;
     Ok(Json(user))
 }
@@ -93,14 +93,14 @@ pub async  fn create_mobile_user_handler(mut dbConn1: DBConnectionHolder, Json(p
 #[composeable()]
 pub fn create_mobile_user(create_user_request:CreateUserRequest,_conn: &mut DBConnection)->BoxFuture<Result<User, FnError<ErrorType>>>{
     async{
-        let value: &mut AsyncPgConnection = _conn.currentConnection().await?;
-        let mut userRepository = RepositoryDB::from(value);
-        let user = userRepository.create_mobile_user(NewUser::from(create_user_request)).await?;
+        let value: &mut AsyncPgConnection = _conn.current_connection().await?;
+        let mut user_repository = RepositoryDB::from(value);
+        let user = user_repository.create_mobile_user(NewUser::from(create_user_request)).await?;
         Ok(user)
     }.boxed()
 }
 
-pub fn AuthRequestFrom(user:String, pass: String)->AuthRequest{
+pub fn auth_request_from(user:String, pass: String) ->AuthRequest{
     AuthRequest{
         user: user,
         pass: pass
