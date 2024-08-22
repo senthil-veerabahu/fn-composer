@@ -8,13 +8,13 @@ use tower_http::cors::CorsLayer;
 
 use example::axumutils::{AppDBConnectionPool, AppState, DBConnectionHolder};
 use example::db::{DBConnection, DBConnProvider};
-use example::fnutils::{ErrorObject, ErrorType, map_to_error_object};
+use example::fnutils::{ErrorObject, ErrorType, FnError, map_to_error_object};
 use example::handlers::user::*;
 use example::model::User;
 use example::repository::repository::RepositoryDB;
 use example::repository::user_repository::{NewUser, UserRepository};
 use example::routes::product_route::get_product_by_ids;
-use function_compose::{compose, composeable, FnError};
+use function_compose::{compose, composeable};
 
 pub async fn create_app_state() ->AppState{
     let mut app_state:AppState = AppState{

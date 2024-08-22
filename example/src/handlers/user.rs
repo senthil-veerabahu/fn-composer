@@ -12,7 +12,7 @@ use crate::{axumutils::{DBConnectionHolder, AppState}, db::{DBConnection, DBConn
 
 use std::{env, ops::Add, time::{Duration, SystemTime, UNIX_EPOCH}};
 use function_compose::composeable;
-use crate::fnutils::{ErrorObject, ErrorType, map_to_error_object, map_to_unknown_system_time_error, map_to_unknown_var_error};
+use crate::fnutils::{ErrorObject, ErrorType, FnError, map_to_error_object, map_to_unknown_system_time_error, map_to_unknown_var_error};
 
 
 #[composeable()]

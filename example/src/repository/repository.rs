@@ -1,7 +1,7 @@
 use axum::async_trait;
 use diesel_async::AsyncPgConnection;
-use function_compose::{FnError};
-use crate::fnutils::ErrorType;
+
+use crate::fnutils::{ErrorType, FnError};
 
 
 pub struct RepositoryDB<'a>{

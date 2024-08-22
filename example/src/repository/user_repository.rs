@@ -18,7 +18,7 @@ use diesel::sql_types::Text;
 use diesel_async::RunQueryDsl;
 use diesel::JoinOnDsl;
 
-use function_compose::{FnError};
+
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -34,7 +34,7 @@ use crate::schema::roles::columns as RoleTable;
 
 
 use crate::{ schema::users::dsl::*, schema::roles::dsl::*, schema::role_entities::dsl::*};
-use crate::fnutils::{convert_to_fn_error, ErrorMapper, ErrorType, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_var_error};
+use crate::fnutils::{convert_to_fn_error, ErrorMapper, ErrorType, FnError, map_result_not_found_error, map_to_unknown_bcrypt_error, map_to_unknown_db_error, map_to_unknown_var_error};
 
 
 

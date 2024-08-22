@@ -4,7 +4,7 @@ use uuid::Uuid;
 use function_compose::composeable;
 
 use crate::{db::{DBConnProvider, DBConnection}, repository::{product_repository::{ProductCategoryData, ProductData, ProductRepository}, repository::RepositoryDB}};
-use crate::fnutils::ErrorType;
+use crate::fnutils::{ErrorType, FnError};
 
 
 #[composeable()]

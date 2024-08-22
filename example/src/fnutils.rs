@@ -8,9 +8,26 @@ use axum::http::StatusCode;
 use hmac::digest::InvalidLength;
 use serde::Serialize;
 
-use function_compose::FnError;
 
 use crate::fnutils::ErrorType::EntityNotFound;
+
+
+#[derive(Debug)]
+pub struct FnError<E>{
+    pub underlying_error: Option<E>,
+    pub error_code:Option<String>,
+    pub description: Option<String>
+}
+
+impl From<String> for FnError<String>{
+    fn from(value: String) -> Self {
+        return FnError::<String>{
+            underlying_error: Some(value.clone()),
+            error_code:None,
+            description: Some(value)
+        };
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum ErrorType {

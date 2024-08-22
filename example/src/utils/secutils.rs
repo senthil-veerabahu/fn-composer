@@ -10,8 +10,7 @@ use sha2::Sha256;
 use std::{collections::BTreeMap};
 use std::time::{Duration};
 use serde_json::Value;
-use function_compose::FnError;
-use crate::fnutils::{ErrorType, FnResult,  map_hmac_invalid_length_to_unknown_error, map_jwt_error_to_unknown_error};
+use crate::fnutils::{ErrorType, FnError, FnResult, map_hmac_invalid_length_to_unknown_error, map_jwt_error_to_unknown_error};
 
 
 

@@ -10,7 +10,7 @@ trace_macros!(true);*/
 //! ```rust
 //! use function_compose::composeable;
 //! #[composeable()]
-//! pub fn add_10(a: i32) -> Result<i32, FnError<String>> {
+//! pub fn add_10(a: i32) -> Result<i32, String> {
 //!     Ok(a + 10)
 //! }
 //! 
@@ -22,7 +22,7 @@ trace_macros!(true);*/
 //! use function_compose::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
-//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
+//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, String>> {
 //!     async move {
 //!         let r = a + b;
 //!         Ok(r)
@@ -37,7 +37,7 @@ trace_macros!(true);*/
 //! use fn_macros::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
-//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
+//! pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, String>> {
 //!     async move {
 //!         let r = a + b;
 //!         Ok(r)
@@ -57,7 +57,7 @@ trace_macros!(true);*/
 //! use function_compose::composeable;
 //! use futures::{future::BoxFuture, FutureExt};
 //! #[composeable()]
-//! pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, FnError<String>>>{
+//! pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, String>>{
 //!     async move{
 //!         let  r =   a + b + c;
 //!         Ok(r)
@@ -79,23 +79,8 @@ use futures::{future::BoxFuture, FutureExt};
 
 //pub type FnError = Box<dyn Error>;
 
-#[derive(Debug)]
-pub struct FnError<E>{
-    pub underlying_error: Option<E>,
-    pub error_code:Option<String>,
-    pub description: Option<String>
-}
 
-impl From<String> for FnError<String>{
-    fn from(value: String) -> Self {
-        return FnError::<String>{
-            underlying_error: Some(value.clone()),
-            error_code:None,
-            description: Some(value)
-        };
-    }
-}
-fn to_fn_error<E1, E2>(fn_error:FnError<E1>) -> FnError<E2> where E2:From<E1>{
+/*fn to_fn_error<E1, E2>(fn_error:FnError<E1>) -> FnError<E2> where E2:From<E1>{
         let underlying_error = match fn_error.underlying_error{
             None => {None}
             Some(error) => {Some(From::from(error))}
@@ -106,6 +91,20 @@ fn to_fn_error<E1, E2>(fn_error:FnError<E1>) -> FnError<E2> where E2:From<E1>{
             error_code: fn_error.error_code,
             underlying_error: underlying_error
         }
+}*/
+
+fn to_fn_error<E1, E2>(error:E1) -> E2 where E2:From<E1>{
+    From::from(error)
+    /*let underlying_error = match fn_error.underlying_error{
+        None => {None}
+        Some(error) => {Some(From::from(error))}
+    };*/
+
+    /*FnError {
+        description: fn_error.description,
+        error_code: fn_error.error_code,
+        underlying_error: underlying_error
+    }*/
 }
 
 /*impl<E1, E2> From<FnError<E1>> for FnError<E2> where E2:From<E1>{
@@ -244,22 +243,22 @@ macro_rules! generate_boxed_fn {
             //let x = count!($($args),*);
             crate::concat_idents!(boxed_fn_name = BoxedFn,$arg_size  {
                 #[doc = concat!("Type alias  BoxedFn", stringify!($arg_size), "  for Boxed FnOnce sync function with ", stringify!($arg_size), " arguments")]
-                pub type boxed_fn_name<'a, $($args),*, $return_type, $error_type> = Box<dyn FnOnce($($args),*) -> Result<$return_type, FnError<$error_type>> + Send + Sync + 'a>;
+                pub type boxed_fn_name<'a, $($args),*, $return_type, $error_type> = Box<dyn FnOnce($($args),*) -> Result<$return_type, $error_type> + Send + Sync + 'a>;
             });
 
             crate::concat_idents!(boxed_fn_name = BoxedAsyncFn,$arg_size  {
                 #[doc = concat!("Type alias  BoxedAsyncFn", stringify!($arg_size), "  for Boxed FnOnce async function" , stringify!($arg_size), " arguments")]
-                    pub type boxed_fn_name<'a, $($args),*, $return_type,$error_type> = Box<dyn FnOnce($($args),*) -> BoxFuture<'a, Result<$return_type, FnError<$error_type>>> + Send + Sync + 'a>;
+                    pub type boxed_fn_name<'a, $($args),*, $return_type,$error_type> = Box<dyn FnOnce($($args),*) -> BoxFuture<'a, Result<$return_type, $error_type>> + Send + Sync + 'a>;
                 });
 
             paste!{
                 #[doc = concat!("Function to box FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedFn",stringify!($arg_size))]
-                pub fn [<lift_sync_fn $arg_size>]<'a, $($args),*, $return_type, $error_type, F: FnOnce($($args),*) -> Result<$return_type, FnError<$error_type>> + Send + Sync + 'a>(f: F,) -> [<BoxedFn $arg_size>]<'a, $($args),*, $return_type, $error_type> {
+                pub fn [<lift_sync_fn $arg_size>]<'a, $($args),*, $return_type, $error_type, F: FnOnce($($args),*) -> Result<$return_type, $error_type> + Send + Sync + 'a>(f: F,) -> [<BoxedFn $arg_size>]<'a, $($args),*, $return_type, $error_type> {
                     Box::new(f)
                 }
 
                 #[doc = concat!("Function to box  FnOnce sync function with ", stringify!($arg_size), " aguments and coerce it to BoxedAsyncFn",stringify!($arg_size))]
-                pub fn [<lift_async_fn $arg_size>]<'a, $($args),*, $return_type, $error_type, F: FnOnce($($args),*) -> BoxFuture<'a,Result<$return_type, FnError<$error_type>>> + Send + Sync + 'a>(f: F,) -> [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $return_type, $error_type> {
+                pub fn [<lift_async_fn $arg_size>]<'a, $($args),*, $return_type, $error_type, F: FnOnce($($args),*) -> BoxFuture<'a,Result<$return_type, $error_type>> + Send + Sync + 'a>(f: F,) -> [<BoxedAsyncFn $arg_size>]<'a, $($args),*, $return_type, $error_type> {
                     Box::new(f)
                 }
             }

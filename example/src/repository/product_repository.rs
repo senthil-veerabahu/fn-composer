@@ -4,10 +4,10 @@ use diesel::JoinOnDsl;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
-use function_compose::FnError;
+
 
 use crate::{schema::product_attributes::dsl::*, schema::products::dsl::*};
-use crate::fnutils::{ErrorType, map_result_not_found_error};
+use crate::fnutils::{ErrorType, FnError, map_result_not_found_error};
 use crate::model::{Category, Product, ProductAttribute};
 
 use super::repository::RepositoryDB;
