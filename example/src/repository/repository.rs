@@ -16,7 +16,7 @@ impl<'a> RepositoryDB<'a>{
 
 #[async_trait]
 pub trait CrudRepository<E, ID>{
-    async fn findById(id: ID)->Result<E, FnError<ErrorType>>;
+    async fn find_by_id(id: ID) ->Result<E, FnError<ErrorType>>;
     async fn update(e:E)->Result<bool, FnError<ErrorType>>;
     async fn delete(e:E)->Result<bool, FnError<ErrorType>>;
     async fn create(e:E)->Result<E, FnError<ErrorType>>;

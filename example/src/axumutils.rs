@@ -4,7 +4,6 @@ use axum::{extract::{FromRef, FromRequestParts, State}, async_trait, http::reque
 use axum::response::{IntoResponse, Response};
 use axum::http::StatusCode;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
-use function_compose::FnError;
 
 use crate::fnutils::*;
 use crate::{db::{create_connection_pool, DBConnection}};
@@ -45,7 +44,7 @@ impl IntoResponse for AppError {
     }
 }
 
-struct AppErrorResponse<ErrorType>{
+/*struct AppErrorResponse<ErrorType>{
     pub underlying_error: Option<ErrorType>,
     pub error_code:Option<String>,
     pub description: Option<String>
@@ -59,7 +58,7 @@ impl From<FnError<ErrorType>> for AppErrorResponse<ErrorType>{
             description:value.description,
         }
     }
-}
+}*/
 
 /*impl IntoResponse for AppErrorResponse<ErrorType> {
     fn into_response(self) -> axum::response::Response {
@@ -120,6 +119,7 @@ impl Deref for DBConnectionHolder{
     }
 }
 
+#[allow(dead_code)]
 struct RequestUser{
     user_id: String,
     email:String,
@@ -128,6 +128,7 @@ struct RequestUser{
     is_phone_verified: bool
 }
 
+#[allow(dead_code)]
 pub struct AuthUserData{
     auth_user:Option<RequestUser>
 }

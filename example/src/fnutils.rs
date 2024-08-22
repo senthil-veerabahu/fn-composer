@@ -36,6 +36,7 @@ pub struct ErrorObject{
     
 }
 
+#[allow(dead_code)]
 pub struct HttpErrorObject{
     pub status_code:Option<StatusCode>,
     error_object: ErrorObject,

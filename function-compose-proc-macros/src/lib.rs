@@ -54,17 +54,17 @@ impl<'a> ToTokens for FunctionArgs<'a> {
                         Type::Reference(reference) => {
                             if reference.mutability.is_some() {
                                 quote! {
-                                    &mut #ident,
+                                   #[allow(unused)] &mut #ident,
                                 }
                             } else {
                                 quote! {
-                                    & #ident,
+                                    #[allow(unused)] & #ident,
                                 }
                             }
                         }
                         _ => {
                             quote! {
-                                 #ident,
+                                 #[allow(unused)] #ident,
                             }
                         }
                     };
@@ -82,7 +82,7 @@ impl<'a> ToTokens for FunctionMutArgs<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.args.iter().for_each(|arg| {
             let token_stream = quote! {
-                        mut #arg,
+                       #[allow(unused)] mut #arg,
             };
             tokens.append_all(token_stream.into_iter());
         });
@@ -242,7 +242,7 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
                 /**
                 * It is only added to keep the compiler happy for non retryable functions
                 */
-                pub fn #retry_fn_ident #fn_gen (#[allow(unused)] #function_mut_args)  #fn_return_type {
+                pub fn #retry_fn_ident #fn_gen ( #function_mut_args)  #fn_return_type {
                     panic!("Function not to be called");
                 }
             };

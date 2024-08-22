@@ -16,14 +16,14 @@ use crate::fnutils::{ErrorObject, ErrorType, map_to_error_object, map_to_unknown
 
 
 #[composeable()]
-pub  fn authenticate(_authRequest: AuthRequest,_conn: &mut DBConnection) ->BoxFuture<Result<AuthData , FnError<ErrorType>>>{
+pub  fn authenticate(_auth_request: AuthRequest, _conn: &mut DBConnection) ->BoxFuture<Result<AuthData , FnError<ErrorType>>>{
     async{
         let value: &mut AsyncPgConnection = _conn.current_connection().await?;
-        let mut userRepository = RepositoryDB::from(value);
-        let authData:AuthData = userRepository
-                .auth(String::from(_authRequest.user), String::from(_authRequest.pass)).await?;
+        let mut user_repository = RepositoryDB::from(value);
+        let auth_data:AuthData = user_repository
+                .auth(String::from(_auth_request.user), String::from(_auth_request.pass)).await?;
         
-        Ok(authData)
+        Ok(auth_data)
     }.boxed()
 }
 
