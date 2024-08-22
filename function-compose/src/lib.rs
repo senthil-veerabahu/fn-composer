@@ -3,7 +3,6 @@
 /*#![feature(trace_macros)]
 trace_macros!(true);*/
 //! Crate `function-compose` provides utilities for composing functions and way to inject arguments to functions
-//! The composeable functions should return rust Result type with FnError as Err type
 //!
 //!
 //! ### Usage
@@ -16,7 +15,7 @@ trace_macros!(true);*/
 //! 
 //! ```
 //! 
-//! ##### The async function should return BoxFuture and the error type should be FnError.
+//! ##### The async function should return BoxFuture.
 //! 
 //! ```rust
 //! use function_compose::composeable;
@@ -44,7 +43,7 @@ trace_macros!(true);*/
 //!     }.boxed()
 //! }
 //! #[composeable()]
-//! pub fn add_10(a: i32) -> Result<i32, FnError<String>> {
+//! pub fn add_10(a: i32) -> Result<i32, String> {
 //!     Ok(a + 10)
 //! }
 //! async fn test(){
@@ -74,44 +73,16 @@ trace_macros!(true);*/
 
 
 use futures::{future::BoxFuture, FutureExt};
-//use paste::paste;
 
 
-//pub type FnError = Box<dyn Error>;
 
 
-/*fn to_fn_error<E1, E2>(fn_error:FnError<E1>) -> FnError<E2> where E2:From<E1>{
-        let underlying_error = match fn_error.underlying_error{
-            None => {None}
-            Some(error) => {Some(From::from(error))}
-        };
 
-        FnError {
-            description: fn_error.description,
-            error_code: fn_error.error_code,
-            underlying_error: underlying_error
-        }
-}*/
 
 fn to_fn_error<E1, E2>(error:E1) -> E2 where E2:From<E1>{
-    From::from(error)
-    /*let underlying_error = match fn_error.underlying_error{
-        None => {None}
-        Some(error) => {Some(From::from(error))}
-    };*/
-
-    /*FnError {
-        description: fn_error.description,
-        error_code: fn_error.error_code,
-        underlying_error: underlying_error
-    }*/
+    From::from(error)    
 }
 
-/*impl<E1, E2> From<FnError<E1>> for FnError<E2> where E2:From<E1>{
-    fn from(value: FnError<E1>) -> Self {
-        todo!()
-    }
-}*/
 
 pub use function_compose_proc_macros::*;
 pub use paste::*;

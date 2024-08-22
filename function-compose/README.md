@@ -15,18 +15,18 @@ e.g below is simple function to add 10 to a given number.
  [Composeable macro documentation](./funciton-compose-proc-macros/README.MD)
 ```rust
 #[composeable()]
-pub fn add_10(a: i32) -> Result<i32, FnError> {
+pub fn add_10(a: i32) -> Result<i32, String> {
     Ok(a + 10)
 }
 
 ```
 
-Below snippet is an async example. The async function should return BoxFuture and the error type should be FnError.
+Below snippet is an async example. The async function should return BoxFuture.
 
 
 ```rust
 #[composeable()]
-pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, String>> {
     async move {
         let r = a + b;
         Ok(r)
@@ -38,7 +38,7 @@ Below is example of async multiplication and add_100 to a number asynchronously
 
 ```rust
 #[composeable()]
-pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, String>> {
     async move {
         let r = a * b;
         Ok(r)
@@ -46,7 +46,7 @@ pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>
 }
 
 #[composeable()]
-pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, String>> {
     async move {
         let r = a + 100;
         Ok(r)
@@ -58,7 +58,7 @@ Below is example of async addition of 3 values
 
 ```rust
 #[composeable()]
-pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, FnError>>{
+pub fn add_3_arg_async(a: i32,b: i32, c:i32) -> BoxFuture<'static, Result<i32, String>>{
     async move{
         let  r =   a + b + c;
         Ok(r)
@@ -71,7 +71,7 @@ Below is example of async addition of 3 values with last parameter accepting ref
 
 ```rust
 #[composeable()]
-pub fn add_3_arg_ref_async<'a>(a: i32,b: &'a i32, c:&'a i32) -> BoxFuture<'a, Result<i32, FnError>>{
+pub fn add_3_arg_ref_async<'a>(a: i32,b: &'a i32, c:&'a i32) -> BoxFuture<'a, Result<i32, String>>{
     async move{
         let  r =   a + b + c;
         Ok(r)
@@ -146,7 +146,7 @@ Below is example of  add_10  function configured to be retried 2 times after ini
 ```rust
 use retry::delay::*;
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_10(a: i32) -> Result<i32, FnError> {
+pub fn add_10(a: i32) -> Result<i32, String> {
     Ok(a + 10)
 }
 
@@ -164,7 +164,7 @@ pub fn add_3_arg_ref__non_copy_async<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, String>> {
     async move {
         let r = a.len() + b.len() + c.len();
         Ok(r as i32)
