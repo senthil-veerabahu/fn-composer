@@ -1,10 +1,10 @@
 [package]
 name = "function-compose"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.84.0"
 license = "MIT"
-repository = "https://gitlab.com/coderodent/fn-composer"
+repository = "https://github.com/senthil-veerabahu/fn-composer"
 description = "lib to allow composition of sync and async rust functions"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
