@@ -192,15 +192,15 @@ pub fn composeable(attr: TokenStream, item: TokenStream) -> TokenStream {
         let fun_arg_params = generate_generics_parameters((arg_length) as u8);
         let return_type_param = generate_return_type_param((arg_length + 1) as u8);
         let fun_gen = if async_fn {
-            let gen = format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, E1>> + 'a + Send +Sync>", );            
+            let gen_type = format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->BoxFuture<'a,Result<{return_type_param}, E1>> + 'a + Send +Sync>", );            
             syn::parse_str::<syn::Generics>(
-                gen.as_str()
+                gen_type.as_str()
             ).ok()
                 .unwrap()
         } else {
-            let gen  =format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->Result<{return_type_param}, E1> + Send +Sync + 'a>");            
+            let gen_type  =format!("<'a, {gen_type_params} E1, F:Fn({fun_arg_params})->Result<{return_type_param}, E1> + Send +Sync + 'a>");            
             syn::parse_str::<syn::Generics>(
-                gen.as_str()                
+                gen_type.as_str()                
             ).ok().unwrap()
         };
 
