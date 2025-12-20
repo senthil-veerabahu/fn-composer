@@ -1,15 +1,8 @@
 //! # function-compose-proc-macros
-//! This crate contains proc macro to mark a function as composeable. 
-//! composeable  functions can be composed using [compose!](function_compose::compose!) macrof macro
+//! This crate contains proc macro to mark a function as composeable. It must be used along with [function_compose](https://crates.io/crates/function-compose) crate
 //! 
-//! ```
-//! use function_compose::composeable;
-//!#[composeable()]
-//!pub fn add_10(a: i32) -> Result<i32, String> {
-//!    Ok(a + 10)
-//!}
-//! ```
-//! 
+//! check the docs of [function-compose](https://docs.rs/function-compose)
+
 use proc_macro::TokenStream;
 
 use std::fmt::Formatter;

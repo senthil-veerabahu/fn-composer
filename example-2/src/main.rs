@@ -1,4 +1,5 @@
 use function_compose::composeable;
+use function_compose::compose;
 use futures::{FutureExt, future::BoxFuture};
 use retry::delay::Fixed;
 
