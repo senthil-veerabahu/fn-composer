@@ -6,7 +6,6 @@ rust-version = "1.85.0"
 repository = "https://github.com/senthil-veerabahu/fn-composer"
 license-file = "LICENSE.txt"
 description = "function composition library for rust"
-readme = "README.md"
 documentation = "https://docs.rs/function-compose"
 keywords = ["function", "composition", "function _composition", "function_compose"]
 
