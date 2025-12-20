@@ -3,9 +3,11 @@ name = "function-compose"
 version = "0.3.0"
 edition = "2024"
 rust-version = "1.85.0"
-license = "MIT"
 repository = "https://github.com/senthil-veerabahu/fn-composer"
-description = "lib to allow composition of sync and async rust functions"
+license-file = "LICENSE.txt"
+description = "function composition library for rust"
+documentation = "https://docs.rs/function-compose"
+keywords = ["function", "composition", "function_composition", "function_compose"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,7 +15,7 @@ description = "lib to allow composition of sync and async rust functions"
 futures = "0.3.29"
 paste = "1.0.14"
 concat-idents = "1.1.5"
-function-compose-proc-macros = {path = "../function-compose-proc-macros"}
+function-compose-proc-macros = {path = "../function-compose-proc-macros", version = "0.3.0" }
 
 
 [dev-dependencies]
