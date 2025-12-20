@@ -7,7 +7,7 @@ repository = "https://github.com/senthil-veerabahu/fn-composer"
 license-file = "LICENSE.txt"
 description = "function composition library for rust"
 documentation = "https://docs.rs/function-compose-proc-macros"
-keywords = ["function", "composition", "function _composition", "function_compose"]
+keywords = ["function", "composition", "function_composition", "function_compose"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
