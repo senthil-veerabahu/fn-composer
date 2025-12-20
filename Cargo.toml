@@ -3,5 +3,5 @@
 members = [
     "function-compose",
     "function-compose-proc-macros",
-    "example"
+    "example-1"
 ,   "example-2"]
