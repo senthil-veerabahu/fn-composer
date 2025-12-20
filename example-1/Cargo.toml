@@ -16,7 +16,7 @@ axum = {version = "0.7.2", features=["multipart"]}
 axum-macros = "0.4.0"
 bcrypt = "0.15.0"
 bigdecimal = {version = "0.4.2", features=["serde"]}
-chrono = {version = "0.4.31", features = ["serde", "rustc-serialize"]}
+chrono = {version = "0.4.42", features = ["serde"]}
 deadpool = {version = "0.10.0", features = ["managed"]}
 deadpool-diesel = {version = "0.5.0", features = ["postgres"]}
 diesel = { version = "2.1.0", features = ["postgres", "chrono", "uuid", "postgres_backend", "numeric"] }

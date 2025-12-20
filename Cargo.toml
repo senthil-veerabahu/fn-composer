@@ -4,4 +4,4 @@ members = [
     "function-compose",
     "function-compose-proc-macros",
     "example"
-]
+,   "example-2"]

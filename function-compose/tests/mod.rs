@@ -23,6 +23,7 @@ impl From<String> for FnError<String>{
     }
 }
 
+#[allow(unused)]
 trait TestTrait :Send + Sync{
     fn do_work(&self) -> i32;
 }
