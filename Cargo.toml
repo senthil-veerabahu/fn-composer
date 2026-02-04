@@ -1,7 +1,8 @@
 [workspace]
+resolver = "3"
 
 members = [
     "function-compose",
     "function-compose-proc-macros",
-    "example"
-]
+    "example-1"
+,   "example-2"]

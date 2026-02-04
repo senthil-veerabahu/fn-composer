@@ -1,0 +1,26 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main", "develop", "0.3.0" ]
+  pull_request:
+    branches: [ "main", "develop", "0.3.0" ]
+  schedule:
+    # Run every day at midnight UTC
+    - cron: '0 0 * * *'
+  # Allows manual triggering from the Actions tab as well
+  workflow_dispatch:
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run:  cargo test --workspace --verbose  -- --test-threads=1  

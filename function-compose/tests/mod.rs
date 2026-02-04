@@ -1,24 +1,91 @@
 #![cfg(test)]
 
-use function_compose::composeable;
-use function_compose::{compose, BoxedFn1, FnError};
+use function_compose::*;
 use futures::{future::BoxFuture, FutureExt};
 use retry::delay::*;
 
 static mut RETRY_COUNT: i32 = 0;
 
-#[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_10(a: i32) -> Result<i32, FnError> {
-    Ok(a + 10)
+#[derive(Debug)]
+pub struct FnError<E>{
+    pub underlying_error: Option<E>,
+    pub error_code:Option<String>,
+    pub description: Option<String>
+}
+
+impl From<String> for FnError<String>{
+    fn from(value: String) -> Self {
+        return FnError::<String>{
+            underlying_error: Some(value.clone()),
+            error_code:None,
+            description: Some(value)
+        };
+    }
+}
+
+#[allow(unused)]
+trait TestTrait :Send + Sync{
+    fn do_work(&self) -> i32;
+}
+
+impl TestTrait for i32{
+    fn do_work(&self) -> i32{
+        0
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+enum ErrorType1{
+    Error1
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+enum ErrorType2{
+    Error2
 }
 
 #[composeable()]
-pub fn add_100(a: i32) -> Result<i32, FnError> {
+fn f1(_a:i32)->Result<i32, FnError<ErrorType1>>{
+    Ok(0)
+}
+
+#[composeable()]
+fn f2(_a:i32)->Result<i32, FnError<ErrorType2>>{
+    Ok(0)
+}
+
+impl From<FnError<ErrorType1>> for FnError<ErrorType2>{
+    fn from(_value: FnError<ErrorType1>) -> Self {
+        todo!()
+    }
+}
+
+#[test]
+fn test_compose_multiple_error_type() {
+    let result = compose!(f1 -> f2 -> with_args(10));
+    assert_eq!(0, result.unwrap());    
+}
+
+#[composeable()]
+fn do_work_with_box(_a:i32, _test:Box<dyn TestTrait> )->Result<i32, FnError<String>>{
+    Ok(0)
+}
+
+#[composeable(retry = Fixed::from_millis(100).take(2))]
+pub fn add_10(a: i32) -> Result<i32, FnError<String>> {
+    Ok(a + 10)
+}
+
+
+#[composeable()]
+pub fn add_100(a: i32) -> Result<i32, FnError<String>> {
     Ok(a + 100)
 }
 
 #[composeable()]
-pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + b;
         Ok(r)
@@ -27,7 +94,7 @@ pub fn add_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
 }
 
 #[composeable()]
-pub fn add_3_arg_async(a: i32, b: i32, c: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_3_arg_async(a: i32, b: i32, c: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + b + c;
         Ok(r)
@@ -40,10 +107,10 @@ pub fn add_3_arg_ref_async<'a>(
     a: &'a i32,
     b: &'a i32,
     c: &'a i32,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     
         async move {
-            if (retry_count_lessthan(2)) {
+            if retry_count_lessthan(2) {
                 increment_retry_count();                
                 Err(FnError {
                     description: Some("Retry test".to_owned()),
@@ -59,9 +126,9 @@ pub fn add_3_arg_ref_async<'a>(
 }
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_3_arg_ref<'a>(a: &'a i32, b: &'a i32, c: &'a i32) -> Result<i32, FnError> {
+pub fn add_3_arg_ref<'a>(a: &'a i32, b: &'a i32, c: &'a i32) -> Result<i32, FnError<String>> {
 
-    if (retry_count_lessthan(2)) {
+    if retry_count_lessthan(2) {
         increment_retry_count();
         return Err(FnError {
             description: Some("Retry test".to_owned()),
@@ -74,12 +141,12 @@ pub fn add_3_arg_ref<'a>(a: &'a i32, b: &'a i32, c: &'a i32) -> Result<i32, FnEr
 }
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_vec_size_ref__non_copy_sync<'a>(
+pub fn add_vec_size_ref_non_copy_sync<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> Result<i32, FnError> {
-    if (retry_count_lessthan(2)) {
+) -> Result<i32, FnError<String>> {
+    if retry_count_lessthan(2) {
         increment_retry_count();
         return Err(FnError {
             description: Some("Retry test".to_owned()),
@@ -92,13 +159,13 @@ pub fn add_vec_size_ref__non_copy_sync<'a>(
 }
 
 #[composeable(retry = Fixed::from_millis(100).take(2))]
-pub fn add_vec_size_ref__non_copy_async<'a>(
+pub fn add_vec_size_ref_non_copy_async<'a>(
     a: &'a mut Vec<String>,
     b: &'a mut Vec<String>,
     c: &'a Vec<String>,
-) -> BoxFuture<'a, Result<i32, FnError>> {
+) -> BoxFuture<'a, Result<i32, FnError<String>>> {
     async move {
-        if (retry_count_lessthan(2)) {
+        if retry_count_lessthan(2) {
             increment_retry_count();
             return Err(FnError {
                 description: Some("Retry test".to_owned()),
@@ -113,7 +180,7 @@ pub fn add_vec_size_ref__non_copy_async<'a>(
 }
 
 #[composeable()]
-pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a * b;
         Ok(r)
@@ -122,7 +189,7 @@ pub fn multiply_async(a: i32, b: i32) -> BoxFuture<'static, Result<i32, FnError>
 }
 
 #[composeable]
-pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError>> {
+pub fn add_100_async(a: i32) -> BoxFuture<'static, Result<i32, FnError<String>>> {
     async move {
         let r = a + 100;
         Ok(r)
@@ -136,6 +203,13 @@ fn test_compose_sync_functions() {
     assert_eq!(120, result.unwrap());
     let result = compose!(add_10 -> add_100 -> add_10 -> add_100 -> with_args(10));
     assert_eq!(230, result.unwrap());
+}
+
+#[test]
+fn test_box_dyn_trait() {
+    let trait_impl = Box::new(20) as Box<dyn TestTrait>;
+    let result:Result<i32, FnError<String>> = compose!(do_work_with_box.provide(trait_impl) -> add_100 -> with_args(10));
+    assert_eq!(100, result.unwrap());    
 }
 
 #[tokio::test]
@@ -156,7 +230,7 @@ async fn test_compose_async_functions() {
     assert_eq!(410, result.unwrap());
 
     //Test composing single arg sync function with  two arg async function
-    let result: Result<i32, FnError> =
+    let result: Result<i32, FnError<String>> =
         compose!(add_100 -> add_3_arg_async.provide(1).provide(1) -> with_args(10)).await;
     assert_eq!(112, result.unwrap());
 
@@ -186,16 +260,16 @@ async fn test_compose_async_retry_test() {
 
   
     let v1 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v2 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v3 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let result = compose!(add_vec_size_ref__non_copy_async.provide(v1).provide( v2) -> add_100_async -> with_args(v3)).await;
+    let v2 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let v3 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let result = compose!(add_vec_size_ref_non_copy_async.provide(v1).provide( v2) -> add_100_async -> with_args(v3)).await;
     assert_eq!(103, result.unwrap());
 
     update_retry_count_for_failure();
     let v1 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v2 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v3 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let result = compose!(add_vec_size_ref__non_copy_async.provide(v1).provide( v2) -> add_100_async -> with_args(v3)).await;
+    let v2 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let v3 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let result = compose!(add_vec_size_ref_non_copy_async.provide(v1).provide( v2) -> add_100_async -> with_args(v3)).await;
     assert_eq!(true, result.is_err());
     reset_retry_count();
 }
@@ -213,16 +287,16 @@ async fn test_compose_sync_retry_test() {
 
 
     let v1 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v2 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v3 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let result = compose!(add_vec_size_ref__non_copy_sync.provide(v1).provide( v2) -> add_100 -> with_args(v3));
+    let v2 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let v3 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let result = compose!(add_vec_size_ref_non_copy_sync.provide(v1).provide( v2) -> add_100 -> with_args(v3));
     assert_eq!(103, result.unwrap());
 
     update_retry_count_for_failure();
     let v1 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v2 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let mut v3 = Box::leak(Box::new(vec!["1".to_owned()]));
-    let result = compose!(add_vec_size_ref__non_copy_sync.provide(v1).provide( v2) -> add_100 -> with_args  (v3));
+    let v2 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let v3 = Box::leak(Box::new(vec!["1".to_owned()]));
+    let result = compose!(add_vec_size_ref_non_copy_sync.provide(v1).provide( v2) -> add_100 -> with_args  (v3));
     assert_eq!(true, result.is_err());
     reset_retry_count();
 }
